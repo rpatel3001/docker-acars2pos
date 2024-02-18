@@ -1,0 +1,4 @@
+beautifulsoup4==4.12.3
+colorama==0.4.6
+icao_nnumber_converter_us==0.1.0
+Requests==2.31.0
