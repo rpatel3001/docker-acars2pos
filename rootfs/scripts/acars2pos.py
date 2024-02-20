@@ -196,7 +196,7 @@ while True:
     else:
       squawk = "0000"
 
-    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"]):%Y/%m/%d,%T.%f},{datetime.now():%Y/%m/%d,%T.%f},{sbs["flight"]},,,,{lat},{lon},,{squawk},,,,\n'
+    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"]):%Y/%m/%d,%T.%f},{datetime.now():%Y/%m/%d,%T.%f},{sbs["flight"]},,,,{lat},{lon},,{squawk},,,,\r\n'
 
     print(f'{Fore.BLUE}{out}{Fore.RESET}', file=stderr)
     for q in txqs:
