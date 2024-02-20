@@ -15,7 +15,7 @@ Under active development, everything is subject to change without notice.
 | `JSON_IN` | Semi-colon separated list of `host:port` entries to connect to for JSON ingest. | acars_router:15550 |
 | `SBS_OUT` | Semi-colon separated list of `host:port` entries to connect to for SBS/Basestation output. | ultrafeeder:12000 |
 
-## Docker
+## Docker Compose
 
 ```
 services:
