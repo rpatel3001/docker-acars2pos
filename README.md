@@ -12,15 +12,19 @@ Under active development, everything is subject to change without notice.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ACARS_HOST`  | Host to connect to for ACARS ingest. | acars_router |
-| `ACARS_PORT`  | Port to connect to for ACARS ingest. | 15550 |
-| `VDLM2_HOST`  | Host to connect to for VDLM2 ingest. | acars_router |
-| `VDLM2_PORT`  | Port to connect to for VDLM2 ingest. | 15555 |
-| `HFDL_HOST`   | Host to connect to for HFDL ingest.  | acars_router |
-| `HFDL_PORT`   | Port to connect to for HFDL ingest.  | 15556 |
-| `SBS_HOST`    | Host to connect to for SBS output.   | ultrafeeder |
-| `SBS_PORT`    | Port to connect to for SBS output.   | 12000 |
+| `JSON_IN` | Semi-colon separated list of `host:port` entries to connect to for JSON ingest. | acars_router:15550 |
+| `SBS_OUT` | Semi-colon separated list of `host:port` entries to connect to for SBS/Basestation output. | ultrafeeder:12000 |
 
 ## Docker
 
-`docker run --rm ghcr.io/rpatel3001/docker-acars2pos`
+```
+services:
+  acars2pos:
+    container_name: acars2pos
+    hostname: acars2pos
+    image: ghcr.io/rpatel3001/docker-acars2pos
+    restart: always
+    environment:
+      - JSON_IN=planeslxc:15550;planeslxc:15555;planeslxc:15556
+      - SBS_OUT=adsbpc:12002;adsbpc:12004
+```
