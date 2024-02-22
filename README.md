@@ -1,5 +1,5 @@
 # docker-acars2pos
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/rpatel3001/docker-acars2pos/Build%20and%20deploy%20to%20ghcr.io)](https://github.com/rpatel3001/docker-acars2pos/actions/workflows/deploy.yml)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/rpatel3001/docker-acars2pos/deploy.yml?branch=master)](https://github.com/rpatel3001/docker-acars2pos/actions/workflows/deploy.yml)
 [![Discord](https://img.shields.io/discord/734090820684349521)](https://discord.gg/sTf9uYF)
 
 A Docker image which ingests JSON formatted ACARS, VDLM2, and HFDL messages and parses them for position data. Any positions found are output on a TCP port in SBS/Basestation format.
