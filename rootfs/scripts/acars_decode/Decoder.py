@@ -13,7 +13,7 @@ def decodeACARS(msg):
   dat = {}
   dat["type"] = "acars"
   dat["reg"] = msg["tail"]
-  dat["time"] = msg["timestamp"]
+  dat["time"] = int(msg["timestamp"])
   dat["flight"] = msg.get("flight", "")
   dat["txt"] = msg["text"]
   dat["msgtype"] = msg["label"]
@@ -25,7 +25,7 @@ def decodeVDLM2(msg):
   dat = {}
   dat["type"] = "vdlm2"
   dat["reg"] = msg["avlc"]["acars"]["reg"]
-  dat["time"] = msg["t"]["sec"] + msg["t"]["usec"]/1e6
+  dat["time"] = int(msg["t"]["sec"])
   dat["flight"] = msg["avlc"]["acars"]["flight"]
   dat["txt"] = msg["avlc"]["acars"]["msg_text"]
   dat["msgtype"] = msg["avlc"]["acars"]["label"]
@@ -45,7 +45,7 @@ def decodeHFDL(msg):
 #    return None
   dat = {}
   dat["type"] = "hfdl"
-  dat["time"] = msg["t"]["sec"] + msg["t"]["usec"]/1e6
+  dat["time"] = int(msg["t"]["sec"])
   dat["flight"] = msg["lpdu"].get("hfnpdu", {}).get("flight_id", "")
   try:
     dat["lat"] = msg["lpdu"]["hfnpdu"]["pos"]["lat"]

@@ -1,6 +1,10 @@
 import fcntl
 import locale
 import os
+import sqlite3 as sql
+
+from icao_nnumber_converter_us import n_to_icao
+
 
 enc = locale.getpreferredencoding(False)
 
@@ -34,3 +38,19 @@ def sock2lines(f):
           buf = buf[(r+2):]
         else:
           buf = buf[(r+1):]
+
+_db = sql.connect("/opt/basestation/BaseStation.sqb")
+_cur = _db.cursor()
+def reg2icao(reg):
+  icao = None
+  res = _cur.execute("SELECT ModeS FROM Aircraft WHERE Registration == ?", (reg,)).fetchall()
+  if len(res) > 0:
+    icao = res[0][0]
+  if icao is None:
+    icao = n_to_icao(reg)
+#if icao is None:
+#  UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
+#  URL = f"https://www.flightradar24.com/data/aircraft/{sbs['reg']}"
+#  page = requests.get(URL, headers={"User-Agent": UA})
+#  icao = BeautifulSoup(page.content, "html.parser").find(id="txt-mode-s").contents[0].strip()
+  return icao

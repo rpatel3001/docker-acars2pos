@@ -3,4 +3,4 @@
 
 # shellcheck disable=SC1091
 source /scripts/common
-python3 -u /scripts/acars2pos.py 2>&1 | stdbuf -o0 awk '{print "[soapy] " strftime("%Y/%m/%d %H:%M:%S", systime()) " " $0}'
+python3 -u /scripts/acars2pos.py 2>&1 | stdbuf -o0 awk '{print "[acars2pos] " strftime("%Y/%m/%d %H:%M:%S", systime()) " " $0}'

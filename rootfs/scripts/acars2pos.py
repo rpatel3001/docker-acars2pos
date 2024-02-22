@@ -1,7 +1,7 @@
 import locale
 import socket
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from json import loads
 from math import pow
 from os import getenv
@@ -16,7 +16,6 @@ from time import sleep
 import requests
 from bs4 import BeautifulSoup
 from colorama import Fore, init
-from icao_nnumber_converter_us import n_to_icao
 
 from acars_decode import Decoder as AD
 from util import *
@@ -50,6 +49,8 @@ def thread_wrapper(func, *args):
         try:
           print(f"[{current_thread().name}] starting thread")
           func(*args)
+        except BrokenPipeError:
+          print(f"[{current_thread().name}] pipe broken; restarting thread in {slp} seconds")
         except ConnectionRefusedError:
           print(f"[{current_thread().name}] connection refused; restarting thread in {slp} seconds")
         except StopIteration:
@@ -166,23 +167,20 @@ while True:
         else:
           continue
       elif len(pos2a) and len(pos2b):
-        txt = sub(r'(LAT)', Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
-        txt = sub(r'(LON)', Fore.RED + r'\1' + Fore.RESET, txt)
+        txt = sub(r'(LAT)', Fore.MAGENTA + r'\1' + Fore.RESET, sbs["txt"])
+        txt = sub(r'(LON)', Fore.MAGENTA + r'\1' + Fore.RESET, txt)
         print(txt, file=stderr)
+        continue
       else:
         continue
 
     print(f'{sbs["type"]} {sbs["msgtype"]}', file=stderr)
 #    print(pos, file=stderr)
 
-    sbs["reg"] = sub(r'[^a-zA-Z0-9]', '', sbs["reg"]).upper()
+    sbs["reg"] = sub(r'[^a-zA-Z0-9-]', '', sbs["reg"]).upper()
+
     if not sbs.get("icao"):
-      sbs["icao"] = n_to_icao(sbs["reg"])
-#    if not sbs.get("icao"):
-#      UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
-#      URL = f"https://www.flightradar24.com/data/aircraft/{sbs['reg']}"
-#      page = requests.get(URL, headers={"User-Agent": UA})
-#      sbs["icao"] = BeautifulSoup(page.content, "html.parser").find(id="txt-mode-s").contents[0].strip()
+      sbs["icao"] = reg2icao(sbs["reg"])
     if not sbs.get("icao"):
       print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}\t{sbs["icao"]}{Fore.RESET}', file=stderr)
       continue
@@ -196,11 +194,12 @@ while True:
     else:
       squawk = "0000"
 
-    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"]):%Y/%m/%d,%T.%f},{datetime.now():%Y/%m/%d,%T.%f},{sbs["flight"]},,,,{lat},{lon},,{squawk},,,,\r\n'
+    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs["flight"]},,,,{lat},{lon},,{squawk},,,,'
 
-    print(f'{Fore.BLUE}{out}{Fore.RESET}', file=stderr)
+    print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
+    print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
     for q in txqs:
-      q.put(out)
+      q.put(out+"\r\n")
   except BaseException:
     print("Other exception:", file=stderr)
     pprint(data, stream=stderr)
