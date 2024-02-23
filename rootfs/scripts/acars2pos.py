@@ -174,7 +174,7 @@ while True:
       else:
         continue
 
-    print(f'{sbs["type"]} {sbs["msgtype"]}', file=stderr)
+    print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
 #    print(pos, file=stderr)
 
     sbs["reg"] = sub(r'[^a-zA-Z0-9-]', '', sbs["reg"]).upper()

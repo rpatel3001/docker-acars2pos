@@ -1,3 +1,5 @@
+from re import search
+
 def decode(msg):
   if msg.get("vdl2"):
     dat = decodeVDLM2(msg["vdl2"])
@@ -5,6 +7,45 @@ def decode(msg):
     dat = decodeHFDL(msg["hfdl"])
   else:
     dat = decodeACARS(msg)
+
+  if dat is None or dat.get("msgtype") is None:
+    return dat
+
+  if dat["msgtype"] == "10":
+    if raw := search(r"([NS]) ?(\d{2}\.\d{3})[,\/]([WE]) ?(\d{2,3}\.\d{3})", dat["txt"]):
+      print("matched type 10")
+      print(dat["txt"])
+      print()
+      dat["lat"] = float(raw.group(2)) * (-1 if raw.group(1) == "S" else 1)
+      dat["lon"] = float(raw.group(4)) * (-1 if raw.group(1) == "W" else 1)
+  elif dat["msgtype"] == "4N":
+    if raw := search(r"([NS])(\d{3})(\d{3}) ([WE])(\d{3})(\d{3})", dat["txt"]):
+      print("matched type 4N")
+      print(dat["txt"])
+      print()
+      dat["lat"] = (int(raw.group(2)) + int(raw.group(3))/600) * (-1 if raw.group(1) == "S" else 1)
+      dat["lon"] = (int(raw.group(5)) + int(raw.group(6))/600) * (-1 if raw.group(4) == "W" else 1)
+  elif dat["msgtype"] == "4T":
+    if raw := search(r"(\d{2})(\d{2}\.\d{1})([NS])[ 0](\d{2})(\d{2}\.\d{1})([WE])", dat["txt"]):
+      print("matched type 4T")
+      print(dat["txt"])
+      print()
+      dat["lat"] = (int(raw.group(1)) + float(raw.group(2))/60) * (-1 if raw.group(3) == "S" else 1)
+      dat["lon"] = (int(raw.group(4)) + float(raw.group(5))/60) * (-1 if raw.group(6) == "W" else 1)
+  elif dat["msgtype"] == "21":
+    if raw := search(r"([NS]) (\d{2}\.\d{3})([WE]) (\d{2}\.\d{3})", dat["txt"]):
+      print("matched type 21")
+      print(dat["txt"])
+      print()
+      dat["lat"] = float(raw.group(2)) * (-1 if raw.group(1) == "S" else 1)
+      dat["lon"] = float(raw.group(4)) * (-1 if raw.group(3) == "W" else 1)
+  elif dat["msgtype"] == "80" or dat["msgtype"] == "83":
+    if raw := search(r"[NS](\d{2})(\d{2}\.\d{1})[WE](\d{3)(\d{2}}\.\d{1})", dat["txt"]):
+      print("matched type 80/83")
+      print(dat["txt"])
+      print()
+      dat["lat"] = (int(raw.group(2)) + float(raw.group(3))/60) * (-1 if raw.group(1) == "S" else 1)
+      dat["lon"] = (int(raw.group(5)) + float(raw.group(6))/60) * (-1 if raw.group(4) == "W" else 1)
   return dat
 
 def decodeACARS(msg):
@@ -20,15 +61,25 @@ def decodeACARS(msg):
   return dat
 
 def decodeVDLM2(msg):
-  if msg.get("avlc") is None or msg["avlc"].get("acars") is None or msg["avlc"]["acars"].get("msg_text") is None:
+  if msg.get("avlc") is None:
+    return None
+  elif (msg["avlc"].get("acars") is None or msg["avlc"]["acars"].get("msg_text") is None) and (msg["avlc"].get("xid") is None or msg["avlc"]["xid"].get("vdl_params") is None):
     return None
   dat = {}
   dat["type"] = "vdlm2"
-  dat["reg"] = msg["avlc"]["acars"]["reg"]
   dat["time"] = int(msg["t"]["sec"])
-  dat["flight"] = msg["avlc"]["acars"]["flight"]
-  dat["txt"] = msg["avlc"]["acars"]["msg_text"]
-  dat["msgtype"] = msg["avlc"]["acars"]["label"]
+  if not (msg["avlc"].get("acars") is None or msg["avlc"]["acars"].get("msg_text") is None):
+    dat["reg"] = msg["avlc"]["acars"]["reg"]
+    dat["flight"] = msg["avlc"]["acars"]["flight"]
+    dat["msgtype"] = msg["avlc"]["acars"]["label"]
+    dat["txt"] = msg["avlc"]["acars"]["msg_text"]
+  elif not (msg["avlc"].get("xid") is None or msg["avlc"]["xid"].get("vdl_params") is None):
+    dat["icao"] = msg["avlc"]["src"]["addr"]
+    for p in msg["avlc"]["xid"]["vdl_params"]:
+      if p["name"] == "ac_location":
+        dat["lat"] = p["value"]["loc"]["lat"]
+        dat["lon"] = p["value"]["loc"]["lon"]
+        print("got VDLM2 with XID pos {dat['lat']} {dat['lon']}")
   return dat
 
 acdb = {}
