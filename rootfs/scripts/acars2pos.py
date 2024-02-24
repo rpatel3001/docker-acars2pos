@@ -1,4 +1,5 @@
 import locale
+import os
 import socket
 import traceback
 from datetime import datetime, timezone
@@ -80,6 +81,11 @@ txqs = []
 for i,s in enumerate(sbs_out):
   txqs.append(SimpleQueue())
   Thread(name=f"tx {s[0]}:{s[1]}", target=thread_wrapper, args=(tx_thread, s, txqs[-1])).start()
+
+if not os.path.exists("/log"):
+     os.makedirs("/log")
+logfile = open(f"/log/{datetime.now(timezone.utc):%Y_%m_%d}.log", "a", 1)
+logfileh1 = open(f"/log/{datetime.now(timezone.utc):%Y_%m_%d}.h1.log", "a", 1)
 
 while True:
   try:
@@ -177,12 +183,15 @@ while True:
     print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
 #    print(pos, file=stderr)
 
+    if not sbs.get("reg"):
+      sbs["reg"] = icao2reg(sbs.get("icao", ""))
+
     sbs["reg"] = sub(r'[^a-zA-Z0-9-]', '', sbs["reg"]).upper()
 
     if not sbs.get("icao"):
-      sbs["icao"] = reg2icao(sbs["reg"])
+      sbs["icao"] = reg2icao(sbs.get("reg", ""))
     if not sbs.get("icao"):
-      print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}\t{sbs["icao"]}{Fore.RESET}', file=stderr)
+      print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}{Fore.RESET}', file=stderr)
       continue
 
     if sbs["type"] == "acars":
@@ -194,10 +203,23 @@ while True:
     else:
       squawk = "0000"
 
-    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs["flight"]},,,,{lat},{lon},,{squawk},,,,'
+    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,{lat},{lon},,{squawk},,,,'
 
     print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
+
+    if getenv("LOG_FILE"):
+      if sbs.get("msgtype") == "H1":
+        logfileh1.write(f'{sbs["txt"]}\n')
+        logfileh1.write(f'{sbs["type"]} {sbs.get("msgtype")}\n')
+        logfileh1.write(out+"\n")
+        logfileh1.write(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n\n')
+      else:
+        logfile.write(f'{sbs["txt"]}\n')
+        logfile.write(f'{sbs["type"]} {sbs.get("msgtype")}\n')
+        logfile.write(out+"\n")
+        logfile.write(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n\n')
+
     for q in txqs:
       q.put(out+"\r\n")
   except BaseException:
@@ -205,4 +227,3 @@ while True:
     pprint(data, stream=stderr)
     print(traceback.format_exc(), file=stderr)
     pass
-

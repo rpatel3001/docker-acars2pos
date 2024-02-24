@@ -54,3 +54,10 @@ def reg2icao(reg):
 #  page = requests.get(URL, headers={"User-Agent": UA})
 #  icao = BeautifulSoup(page.content, "html.parser").find(id="txt-mode-s").contents[0].strip()
   return icao
+
+def icao2reg(icao):
+  reg = ""
+  res = _cur.execute("SELECT Registration FROM Aircraft WHERE ModeS == ?", (icao,)).fetchall()
+  if len(res) > 0:
+    reg = res[0][0]
+  return reg

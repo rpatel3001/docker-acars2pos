@@ -46,6 +46,19 @@ def decode(msg):
       print()
       dat["lat"] = (int(raw.group(2)) + float(raw.group(3))/60) * (-1 if raw.group(1) == "S" else 1)
       dat["lon"] = (int(raw.group(5)) + float(raw.group(6))/60) * (-1 if raw.group(4) == "W" else 1)
+  elif dat["msgtype"] == "16":
+    if raw := search(r"([NS]) (\d{2}\.\d{3})[ ,]([WE])\s{0,2}(\d{1,3}\.\d{3})", dat["txt"]):
+      print("matched type 16 frac deg")
+      print(dat["txt"])
+      print()
+      dat["lat"] = float(raw.group(2)) * (-1 if raw.group(1) == "S" else 1)
+      dat["lon"] = float(raw.group(4)) * (-1 if raw.group(3) == "W" else 1)
+    elif raw := search(r"([NS])(\d{2})(\d{2}\.\d{2}) ([WE])\s{0,2}(\d{1,3}) ?(\d{1,2}\.\d{2})", dat["txt"]):
+      print("matched type 16 frac min")
+      print(dat["txt"])
+      print()
+      dat["lat"] = (int(raw.group(2)) + float(raw.group(3))/60) * (-1 if raw.group(1) == "S" else 1)
+      dat["lon"] = (int(raw.group(5)) + float(raw.group(6))/60) * (-1 if raw.group(4) == "W" else 1)
   return dat
 
 def decodeACARS(msg):
@@ -79,7 +92,7 @@ def decodeVDLM2(msg):
       if p["name"] == "ac_location":
         dat["lat"] = p["value"]["loc"]["lat"]
         dat["lon"] = p["value"]["loc"]["lon"]
-        print("got VDLM2 with XID pos {dat['lat']} {dat['lon']}")
+        print(f"got VDLM2 with XID pos {dat['lat']} {dat['lon']}")
   return dat
 
 acdb = {}
