@@ -18,7 +18,10 @@ def decode(msg):
   else:
     dat = decodeACARS(msg)
 
-  if dat and dat.get("msgtype") == "4N":
+  if not dat:
+    return None
+
+  if dat.get("msgtype") == "4N":
     rgx = compile(r"([NS])(\d{3})(\d{3}) ([WE])(\d{3})(\d{3})")
     raw = rgx.findall(dat["txt"])
     if len(raw) == 1:
@@ -30,8 +33,20 @@ def decode(msg):
       raw = rgx.search(dat["txt"])
       dat["lat"] = (int(raw.group(2)) + int(raw.group(3))/600) * (-1 if raw.group(1) == "S" else 1)
       dat["lon"] = (int(raw.group(5)) + int(raw.group(6))/600) * (-1 if raw.group(4) == "W" else 1)
+  elif dat.get("msgtype") == "4T":
+    rgx = compile(r"(\d{2})(\d{2}\.\d{1})([NS])[ 0](\d{2})(\d{2}\.\d{1})([WE])")
+    raw = rgx.findall(dat["txt"])
+    if len(raw) == 1:
+      pos = dat["txt"]
+      for pat in raw[0]:
+        pos = sub(f"({pat})", Fore.GREEN + r"\1" + Fore.RESET, pos)
+      print(f"matched message type {dat['msgtype']}")
+      print(pos)
+      raw = rgx.search(dat["txt"])
+      dat["lat"] = (int(raw.group(1)) + float(raw.group(2))/60) * (-1 if raw.group(3) == "S" else 1)
+      dat["lon"] = (int(raw.group(4)) + float(raw.group(5))/60) * (-1 if raw.group(6) == "W" else 1)
 
-  if dat and not dat.get("lat"):
+  if not dat.get("lat"):
     dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
     for i,rgx in enumerate(rgxs):
       raw = rgx.findall(dat["txt"])
