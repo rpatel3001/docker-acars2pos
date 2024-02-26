@@ -1,4 +1,14 @@
-from re import search
+from re import compile, sub
+from colorama import Fore
+
+rgxs = [compile(r"([NS])[ 0]{0,2}(\d{1,2}\.\d{3}).?([WE])[0 ]{0,2}(\d{1,3}\.\d{3})"),
+        compile(r"([NS])[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2}\.\d{1}).?([WE])[ 0]{0,2}(\d{1,3}?)[ 0]{0,1}(\d{1,2}\.\d{1})"),
+        compile(r"([NS])[ 0]{0,1}(\d{1,2})[ 0]{0,3}(\d{0,2}\.\d{2}).?([WE])[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2}\.\d{2})"),
+        compile(r"([NS])\s?(\d{2})(\d{2})(\d{2}).?([WE])\s?(\d{2,3})(\d{2})(\d{2})"),
+        compile(r"([NS])[ 0]{0,1}(\d{1,2})(\d{3}).?([WE])[ 0]{0,2}(\d{1,3})(\d{3})"),
+        compile(r"[0 ]{0,1}(\d{1,2})[0 ]{0,1}(\d{1,2}\.\d{1})([NS])[ 0]{0,2}(\d{1,3})[0 ]{0,1}(\d{1,2}\.\d{1})([WE])"),
+        compile(r"[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2})([NS])[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2})([WE])"),
+        compile(r"LAT ([NS]) [0 ]{0,1}(\d{1,2}):(\d{2}\.\d{1})  LONG [WE] [0 ]{0,1}(\d{1,2}):(\d{2}\.\d{1})")]
 
 def decode(msg):
   if msg.get("vdl2"):
@@ -8,57 +18,37 @@ def decode(msg):
   else:
     dat = decodeACARS(msg)
 
-  if dat is None or dat.get("msgtype") is None:
-    return dat
+  if dat:
+    dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
+    for i,rgx in enumerate(rgxs):
+      raw = rgx.findall(dat["txt"])
+      if len(raw) == 1:
+        pos = dat["txt"]
+        for pat in raw:
+          pos = sub(f"({pat})", Fore.RED + r"\1" + Fore.RESET, pos)
+        print(f"regex {i} matched message type {dat['msgtype']}")
+        print(pos)
 
-  if dat["msgtype"] == "10":
-    if raw := search(r"([NS]) ?(\d{2}\.\d{3})[,\/]([WE]) ?(\d{2,3}\.\d{3})", dat["txt"]):
-      print("matched type 10")
-      print(dat["txt"])
-      print()
-      dat["lat"] = float(raw.group(2)) * (-1 if raw.group(1) == "S" else 1)
-      dat["lon"] = float(raw.group(4)) * (-1 if raw.group(1) == "W" else 1)
-  elif dat["msgtype"] == "4N":
-    if raw := search(r"([NS])(\d{3})(\d{3}) ([WE])(\d{3})(\d{3})", dat["txt"]):
-      print("matched type 4N")
-      print(dat["txt"])
-      print()
-      dat["lat"] = (int(raw.group(2)) + int(raw.group(3))/600) * (-1 if raw.group(1) == "S" else 1)
-      dat["lon"] = (int(raw.group(5)) + int(raw.group(6))/600) * (-1 if raw.group(4) == "W" else 1)
-  elif dat["msgtype"] == "4T":
-    if raw := search(r"(\d{2})(\d{2}\.\d{1})([NS])[ 0](\d{2})(\d{2}\.\d{1})([WE])", dat["txt"]):
-      print("matched type 4T")
-      print(dat["txt"])
-      print()
-      dat["lat"] = (int(raw.group(1)) + float(raw.group(2))/60) * (-1 if raw.group(3) == "S" else 1)
-      dat["lon"] = (int(raw.group(4)) + float(raw.group(5))/60) * (-1 if raw.group(6) == "W" else 1)
-  elif dat["msgtype"] == "21":
-    if raw := search(r"([NS]) (\d{2}\.\d{3})([WE]) (\d{2}\.\d{3})", dat["txt"]):
-      print("matched type 21")
-      print(dat["txt"])
-      print()
-      dat["lat"] = float(raw.group(2)) * (-1 if raw.group(1) == "S" else 1)
-      dat["lon"] = float(raw.group(4)) * (-1 if raw.group(3) == "W" else 1)
-  elif dat["msgtype"] == "80" or dat["msgtype"] == "83":
-    if raw := search(r"[NS](\d{2})(\d{2}\.\d{1})[WE](\d{3)(\d{2}}\.\d{1})", dat["txt"]):
-      print("matched type 80/83")
-      print(dat["txt"])
-      print()
-      dat["lat"] = (int(raw.group(2)) + float(raw.group(3))/60) * (-1 if raw.group(1) == "S" else 1)
-      dat["lon"] = (int(raw.group(5)) + float(raw.group(6))/60) * (-1 if raw.group(4) == "W" else 1)
-  elif dat["msgtype"] == "16":
-    if raw := search(r"([NS]) (\d{2}\.\d{3})[ ,]([WE])\s{0,2}(\d{1,3}\.\d{3})", dat["txt"]):
-      print("matched type 16 frac deg")
-      print(dat["txt"])
-      print()
-      dat["lat"] = float(raw.group(2)) * (-1 if raw.group(1) == "S" else 1)
-      dat["lon"] = float(raw.group(4)) * (-1 if raw.group(3) == "W" else 1)
-    elif raw := search(r"([NS])(\d{2})(\d{2}\.\d{2}) ([WE])\s{0,2}(\d{1,3}) ?(\d{1,2}\.\d{2})", dat["txt"]):
-      print("matched type 16 frac min")
-      print(dat["txt"])
-      print()
-      dat["lat"] = (int(raw.group(2)) + float(raw.group(3))/60) * (-1 if raw.group(1) == "S" else 1)
-      dat["lon"] = (int(raw.group(5)) + float(raw.group(6))/60) * (-1 if raw.group(4) == "W" else 1)
+        raw = raw[0] #search(rgx, dat["txt"])
+        if i == 0:
+          dat["lat"] = float(raw[1]) * (-1 if raw[0] == "S" else 1)
+          dat["lon"] = float(raw[3]) * (-1 if raw[2] == "W" else 1)
+        elif i == 1 or i == 2 or i == 7:
+          dat["lat"] = (int(raw[1]) + float(raw[2])/60) * (-1 if raw[0] == "S" else 1)
+          dat["lon"] = (int(raw[4]) + float(raw[5])/60) * (-1 if raw[3] == "W" else 1)
+        elif i == 3:
+          dat["lat"] = (int(raw[1]) + int(raw[2])/60 + int(raw[3])/3600) * (-1 if raw[0] == "S" else 1)
+          dat["lon"] = (int(raw[5]) + int(raw[6])/60 + int(raw[7])/3600) * (-1 if raw[4] == "W" else 1)
+        elif i == 4:
+          dat["lat"] = (int(raw[1]) + int(raw[2])/600) * (-1 if raw[0] == "S" else 1)
+          dat["lon"] = (int(raw[4]) + int(raw[5])/600) * (-1 if raw[3] == "W" else 1)
+        elif i == 5 or i == 6:
+          dat["lat"] = (int(raw[0]) + float(raw[1])/60) * (-1 if raw[2] == "S" else 1)
+          dat["lon"] = (int(raw[3]) + float(raw[4])/60) * (-1 if raw[5] == "W" else 1)
+
+      if dat.get("lat"):
+        break
+
   return dat
 
 def decodeACARS(msg):

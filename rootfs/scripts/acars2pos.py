@@ -16,7 +16,7 @@ from time import sleep
 
 import requests
 from bs4 import BeautifulSoup
-from colorama import Fore, init
+from colorama import Fore
 
 from acars_decode import Decoder as AD
 from util import *
@@ -99,8 +99,6 @@ while True:
     if not sbs.get("txt") and not sbs.get("lat"):
       continue
 
-    sbs["txt"] = sbs.get("txt", "").upper().replace("\r", "").replace("\n", "")
-
     if sbs.get("lat"):
         lat = sbs["lat"]
         lon = sbs["lon"]
@@ -114,13 +112,14 @@ while True:
       pos2b = findall("LON", sbs["txt"])
       if (len(pos1) == 1):
         txt = sub(rgx1, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
+        print(f"old regex 1 matched message type {dat['msgtype']}")
+        print(txt)
 
         pos = pos1[0]
         pos = sub(r'/', '', pos)
         pos = sub(r'\s', '', pos)
         pos = sub(r',', '', pos)
         pos = sub(r'\.', '', pos)
-        pos = sub(r'-', 'W', pos)
 
         issouth = "S" in pos
         iswest = "W" in pos
@@ -129,8 +128,6 @@ while True:
 
         if not(isnorth or issouth) and not(iswest or iseast):
           continue
-
-        print(txt, file=stderr)
 
         pos = split(r'[WE]', pos[1:])
 
@@ -144,13 +141,14 @@ while True:
           continue
       elif len(pos1b) == 1:
         txt = sub(rgx2, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
+        print(f"old regex 2 matched message type {dat['msgtype']}")
+        print(txt)
 
         pos = pos1b[0]
         pos = sub(r'/', '', pos)
         pos = sub(r'\s', '', pos)
         pos = sub(r',', '', pos)
         pos = sub(r'\.', '', pos)
-        pos = sub(r'-', 'W', pos)
 
         issouth = "S" in pos
         iswest = "W" in pos
@@ -159,8 +157,6 @@ while True:
 
         if not(isnorth or issouth) and not(iswest or iseast):
           continue
-
-        print(txt, file=stderr)
 
         pos = split(r'[NS]', pos[1:])
 
@@ -175,7 +171,8 @@ while True:
       elif len(pos2a) and len(pos2b):
         txt = sub(r'(LAT)', Fore.MAGENTA + r'\1' + Fore.RESET, sbs["txt"])
         txt = sub(r'(LON)', Fore.MAGENTA + r'\1' + Fore.RESET, txt)
-        print(txt, file=stderr)
+        print(f"old regex 3 matched message type {dat['msgtype']}")
+        print(txt)
         continue
       else:
         continue
@@ -203,13 +200,13 @@ while True:
     else:
       squawk = "0000"
 
-    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,{lat},{lon},,{squawk},,,,'
+    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,{lat:.3f},{lon:.3f},,{squawk},,,,'
 
     print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
 
-    if getenv("LOG_FILE"):
-      if sbs.get("msgtype") == "H1":
+    if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
+      if sbs["msgtype"] == "H1":
         logfileh1.write(f'{sbs["txt"]}\n')
         logfileh1.write(f'{sbs["type"]} {sbs.get("msgtype")}\n')
         logfileh1.write(out+"\n")
