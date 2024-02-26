@@ -112,7 +112,7 @@ while True:
       pos2b = findall("LON", sbs["txt"])
       if (len(pos1) == 1):
         txt = sub(rgx1, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
-        print(f"old regex 1 matched message type {dat['msgtype']}")
+        print(f"old regex 1 matched message type {sbs['msgtype']}")
         print(txt)
 
         pos = pos1[0]
@@ -141,7 +141,7 @@ while True:
           continue
       elif len(pos1b) == 1:
         txt = sub(rgx2, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
-        print(f"old regex 2 matched message type {dat['msgtype']}")
+        print(f"old regex 2 matched message type {sbs['msgtype']}")
         print(txt)
 
         pos = pos1b[0]
@@ -171,7 +171,7 @@ while True:
       elif len(pos2a) and len(pos2b):
         txt = sub(r'(LAT)', Fore.MAGENTA + r'\1' + Fore.RESET, sbs["txt"])
         txt = sub(r'(LON)', Fore.MAGENTA + r'\1' + Fore.RESET, txt)
-        print(f"old regex 3 matched message type {dat['msgtype']}")
+        print(f"old regex 3 matched message type {sbs['msgtype']}")
         print(txt)
         continue
       else:

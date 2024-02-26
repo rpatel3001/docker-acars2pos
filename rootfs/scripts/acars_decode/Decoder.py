@@ -5,7 +5,7 @@ rgxs = [compile(r"([NS])[ 0]{0,2}(\d{1,2}\.\d{3}).?([WE])[0 ]{0,2}(\d{1,3}\.\d{3
         compile(r"([NS])[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2}\.\d{1}).?([WE])[ 0]{0,2}(\d{1,3}?)[ 0]{0,1}(\d{1,2}\.\d{1})"),
         compile(r"([NS])[ 0]{0,1}(\d{1,2})[ 0]{0,3}(\d{0,2}\.\d{2}).?([WE])[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2}\.\d{2})"),
         compile(r"([NS])\s?(\d{2})(\d{2})(\d{2}).?([WE])\s?(\d{2,3})(\d{2})(\d{2})"),
-        compile(r"([NS])[ 0]{0,1}(\d{1,2})(\d{3}).?([WE])[ 0]{0,2}(\d{1,3})(\d{3})"),
+        compile(r"([NS])[ 0]?([ 0\d]\d)(\d{3}).?([WE])([ 0\d][ 0\d]\d)(\d{3})"),
         compile(r"[0 ]{0,1}(\d{1,2})[0 ]{0,1}(\d{1,2}\.\d{1})([NS])[ 0]{0,2}(\d{1,3})[0 ]{0,1}(\d{1,2}\.\d{1})([WE])"),
         compile(r"[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2})([NS])[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2})([WE])"),
         compile(r"LAT ([NS]) [0 ]{0,1}(\d{1,2}):(\d{2}\.\d{1})  LONG [WE] [0 ]{0,1}(\d{1,2}):(\d{2}\.\d{1})")]
@@ -18,35 +18,48 @@ def decode(msg):
   else:
     dat = decodeACARS(msg)
 
-  if dat:
+  if dat and dat.get("msgtype") == "4N":
+    rgx = compile(r"([NS])(\d{3})(\d{3}) ([WE])(\d{3})(\d{3})")
+    raw = rgx.findall(dat["txt"])
+    if len(raw) == 1:
+      pos = dat["txt"]
+      for pat in raw[0]:
+        pos = sub(f"({pat})", Fore.GREEN + r"\1" + Fore.RESET, pos)
+      print(f"matched message type {dat['msgtype']}")
+      print(pos)
+      raw = rgx.search(dat["txt"])
+      dat["lat"] = (int(raw.group(2)) + int(raw.group(3))/600) * (-1 if raw.group(1) == "S" else 1)
+      dat["lon"] = (int(raw.group(5)) + int(raw.group(6))/600) * (-1 if raw.group(4) == "W" else 1)
+
+  if dat and not dat.get("lat"):
     dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
     for i,rgx in enumerate(rgxs):
       raw = rgx.findall(dat["txt"])
       if len(raw) == 1:
         pos = dat["txt"]
-        for pat in raw:
+        for pat in raw[0]:
           pos = sub(f"({pat})", Fore.RED + r"\1" + Fore.RESET, pos)
         print(f"regex {i} matched message type {dat['msgtype']}")
         print(pos)
 
-        raw = raw[0] #search(rgx, dat["txt"])
+        raw = rgx.search(dat["txt"])
         if i == 0:
-          dat["lat"] = float(raw[1]) * (-1 if raw[0] == "S" else 1)
-          dat["lon"] = float(raw[3]) * (-1 if raw[2] == "W" else 1)
+          dat["lat"] = float(raw[2]) * (-1 if raw[1] == "S" else 1)
+          dat["lon"] = float(raw[4]) * (-1 if raw[3] == "W" else 1)
         elif i == 1 or i == 2 or i == 7:
-          dat["lat"] = (int(raw[1]) + float(raw[2])/60) * (-1 if raw[0] == "S" else 1)
-          dat["lon"] = (int(raw[4]) + float(raw[5])/60) * (-1 if raw[3] == "W" else 1)
+          dat["lat"] = (int(raw[2]) + float(raw[3])/60) * (-1 if raw[1] == "S" else 1)
+          dat["lon"] = (int(raw[5]) + float(raw[6])/60) * (-1 if raw[4] == "W" else 1)
         elif i == 3:
-          dat["lat"] = (int(raw[1]) + int(raw[2])/60 + int(raw[3])/3600) * (-1 if raw[0] == "S" else 1)
-          dat["lon"] = (int(raw[5]) + int(raw[6])/60 + int(raw[7])/3600) * (-1 if raw[4] == "W" else 1)
+          dat["lat"] = (int(raw[2]) + int(raw[3])/60 + int(raw[4])/3600) * (-1 if raw[1] == "S" else 1)
+          dat["lon"] = (int(raw[6]) + int(raw[7])/60 + int(raw[8])/3600) * (-1 if raw[5] == "W" else 1)
         elif i == 4:
-          dat["lat"] = (int(raw[1]) + int(raw[2])/600) * (-1 if raw[0] == "S" else 1)
-          dat["lon"] = (int(raw[4]) + int(raw[5])/600) * (-1 if raw[3] == "W" else 1)
+          dat["lat"] = (int(raw[2]) + int(raw[3])/600) * (-1 if raw[1] == "S" else 1)
+          dat["lon"] = (int(raw[5]) + int(raw[6])/600) * (-1 if raw[4] == "W" else 1)
         elif i == 5 or i == 6:
-          dat["lat"] = (int(raw[0]) + float(raw[1])/60) * (-1 if raw[2] == "S" else 1)
-          dat["lon"] = (int(raw[3]) + float(raw[4])/60) * (-1 if raw[5] == "W" else 1)
+          dat["lat"] = (int(raw[1]) + float(raw[2])/60) * (-1 if raw[3] == "S" else 1)
+          dat["lon"] = (int(raw[4]) + float(raw[5])/60) * (-1 if raw[6] == "W" else 1)
 
-      if dat.get("lat"):
+      if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
         break
 
   return dat
