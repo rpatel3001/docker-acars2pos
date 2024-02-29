@@ -14,7 +14,7 @@ Under active development, everything is subject to change without notice.
 |----------|-------------|---------|
 | `JSON_IN` | Semi-colon separated list of `host:port` entries to connect to for JSON ingest. | acars_router:15550 |
 | `SBS_OUT` | Semi-colon separated list of `host:port` entries to connect to for SBS/Basestation output. | ultrafeeder:12000 |
-| `LOG_FILE` | Set to any value to message text, type, SBS output, and adsbexchange link to a file in `/log`. | Unset |
+| `LOG_FILE` | Set to any value to message text, type, SBS output, and adsbexchange link to files in `/log`. | Unset |
 
 ## Docker Compose
 

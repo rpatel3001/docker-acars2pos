@@ -1,14 +1,55 @@
 from re import compile, sub
 from colorama import Fore
 
-rgxs = [compile(r"([NS])[ 0]{0,2}(\d{1,2}\.\d{3}).?([WE])[0 ]{0,2}(\d{1,3}\.\d{3})"),
-        compile(r"([NS])[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2}\.\d{1}).?([WE])[ 0]{0,2}(\d{1,3}?)[ 0]{0,1}(\d{1,2}\.\d{1})"),
-        compile(r"([NS])[ 0]{0,1}(\d{1,2})[ 0]{0,3}(\d{0,2}\.\d{2}).?([WE])[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2}\.\d{2})"),
-        compile(r"([NS])\s?(\d{2})(\d{2})(\d{2}).?([WE])\s?(\d{2,3})(\d{2})(\d{2})"),
-        compile(r"([NS])[ 0]?([ 0\d]\d)(\d{3}).?([WE])([ 0\d][ 0\d]\d)(\d{3})"),
-        compile(r"[0 ]{0,1}(\d{1,2})[0 ]{0,1}(\d{1,2}\.\d{1})([NS])[ 0]{0,2}(\d{1,3})[0 ]{0,1}(\d{1,2}\.\d{1})([WE])"),
-        compile(r"[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2})([NS])[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2})([WE])"),
-        compile(r"LAT ([NS]) [0 ]{0,1}(\d{1,2}):(\d{2}\.\d{1})  LONG ([WE]) [0 ]{0,1}(\d{1,2}):(\d{2}\.\d{1})")]
+
+dlat = r"(?P<dlat>[NS])"
+dlon = r"(?P<dlon>[WE])"
+
+spdig2 = r"(?:\s|\d)\d"
+spdig3 = r"(?:\s\s|\s\d|\d\d)\d"
+
+dig1 = r"\d"
+dig2 = r"\d\d"
+dig3 = r"\d\d\d"
+
+
+def name(n, rgx):
+  return f"(?P<{n}>{rgx})"
+
+def sd2(n):
+  return name(n, spdig2)
+
+def sd3(n):
+  return name(n, spdig3)
+
+def d1(n):
+  return name(n, dig1)
+
+def d2(n):
+  return name(n, dig2)
+
+def d3(n):
+  return name(n, dig3)
+
+
+rgxs = [
+        compile(dlat + r"[ 0]{0,2}(\d{1,2}\.\d{3}).?" + dlon + r"[ 0]{0,2}(\d{1,3}\.\d{3})"), # thousandths of degrees
+        compile(dlat + r"[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2}\.\d{1}).?" + dlon + r"[ 0]{0,2}(\d{1,3}?)[ 0]{0,1}(\d{1,2}\.\d{1})"), # tenths of minutes
+        compile(dlat + r"[ 0]{0,1}(\d{1,2})[ 0]{0,3}(\d{0,2}\.\d{2}).?" + dlon +r"[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2}\.\d{2})"), # hundredths of minutes
+        compile(dlat + r"\s?(\d{2})(\d{2})(\d{2}).?" + dlon + r"\s?(\d{2,3})(\d{2})(\d{2})"), # seconds
+        compile(dlat + r"[ 0]?([ 0\d]\d)(\d{3}).?" + dlon + r"([ 0\d][ 0\d]\d)(\d{3})"), # tenths of minutes, no decimal
+        compile(r"[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2}\.\d{1})" + dlat + r"[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2}\.\d{1})" + dlon), # tenths of minutes, direction after
+        compile(r"[ 0]{0,1}(\d{1,2})[ 0]{0,1}(\d{1,2})" + dlat + r"[ 0]{0,2}(\d{1,3})[ 0]{0,1}(\d{1,2})" + dlon), # minutes, direction after
+        compile(r"LAT " + dlat + r" [ 0]{0,1}(\d{1,2}):(\d{2}\.\d{1})  LONG " + dlon + r" [ 0]{0,1}(\d{1,2}):(\d{2}\.\d{1})"), # tenths of minuts, colon separator
+        ]
+
+msgrgx = {
+         "10": [compile(dlat + " " + sd2("latdeg") + "\." + d3("latdeg1000") + "\/" + dlon + sd3("londeg") + "\." + d3("londeg1000"))],
+         "14": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "15": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10")),
+                compile(dlat + sd2("latdeg") + d2("latmin") + d2("latsec") + dlon + sd3("londeg") + d2("lonmin") + d2("lonsec"))],
+         "4T": [compile(d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + dlat + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10") + dlon)],
+         }
 
 def decode(msg):
   if msg.get("vdl2"):
@@ -21,39 +62,42 @@ def decode(msg):
   if not dat:
     return None
 
-  if dat.get("msgtype") == "4N":
-    rgx = compile(r"([NS])(\d{3})(\d{3}) ([WE])(\d{3})(\d{3})")
-    raw = rgx.findall(dat["txt"])
-    if len(raw) == 1:
-      pos = dat["txt"]
-      for pat in raw[0]:
-        pos = sub(f"({pat})", Fore.GREEN + r"\1" + Fore.RESET, pos)
-      print(f"matched message type {dat['msgtype']}")
-      print(pos)
-      raw = rgx.search(dat["txt"])
-      dat["lat"] = (int(raw.group(2)) + int(raw.group(3))/600) * (-1 if raw.group(1) == "S" else 1)
-      dat["lon"] = (int(raw.group(5)) + int(raw.group(6))/600) * (-1 if raw.group(4) == "W" else 1)
-  elif dat.get("msgtype") == "4T":
-    rgx = compile(r"(\d{2})(\d{2}\.\d{1})([NS])[ 0](\d{2})(\d{2}\.\d{1})([WE])")
-    raw = rgx.findall(dat["txt"])
-    if len(raw) == 1:
-      pos = dat["txt"]
-      for pat in raw[0]:
-        pos = sub(f"({pat})", Fore.GREEN + r"\1" + Fore.RESET, pos)
-      print(f"matched message type {dat['msgtype']}")
-      print(pos)
-      raw = rgx.search(dat["txt"])
-      dat["lat"] = (int(raw.group(1)) + float(raw.group(2))/60) * (-1 if raw.group(3) == "S" else 1)
-      dat["lon"] = (int(raw.group(4)) + float(raw.group(5))/60) * (-1 if raw.group(6) == "W" else 1)
+  dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
+
+  rgxl = msgrgx.get(dat.get("msgtype"))
+  if rgxl and dat.get("msgtype"):
+    for rgx in rgxl:
+      raw = rgx.findall(dat["txt"])
+      if len(raw) == 1:
+        pos = rgx.sub(Fore.GREEN + r"\g<0>" + Fore.RESET, dat["txt"])
+        print(f"matched message type {dat['msgtype']}")
+        print(pos)
+        raw = rgx.search(dat["txt"]).groupdict()
+        print(raw)
+        dat["lat"] =  float(raw.get("latdeg", 0))
+        dat["lat"] += float(raw.get("lat1000", 0))/1000
+        dat["lat"] += float(raw.get("latmin", 0))/60
+        dat["lat"] += float(raw.get("latmin10", 0))/600
+        dat["lat"] += float(raw.get("latmin100", 0))/6000
+        dat["lat"] += float(raw.get("latsec", 0))/3600
+        dat["lat"] *= -1 if raw.get("dlat") == "S" else 1
+
+        dat["lon"] =  float(raw.get("londeg", 0))
+        dat["lon"] += float(raw.get("lon1000", 0))/1000
+        dat["lon"] += float(raw.get("lonmin", 0))/60
+        dat["lon"] += float(raw.get("lonmin10", 0))/600
+        dat["lon"] += float(raw.get("lonmin100", 0))/6000
+        dat["lon"] += float(raw.get("lonsec", 0))/3600
+        dat["lon"] *= -1 if raw.get("dlon") == "W" else 1
+
+      if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
+        break
 
   if not dat.get("lat"):
-    dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
     for i,rgx in enumerate(rgxs):
       raw = rgx.findall(dat["txt"])
       if len(raw) == 1:
-        pos = dat["txt"]
-        for pat in raw[0]:
-          pos = sub(f"({pat})", Fore.RED + r"\1" + Fore.RESET, pos)
+        pos = rgx.sub(Fore.RED + r"\g<0>" + Fore.RESET, dat["txt"])
         print(f"regex {i} matched message type {dat['msgtype']}")
         print(pos)
 

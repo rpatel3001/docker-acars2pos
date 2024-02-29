@@ -82,10 +82,8 @@ for i,s in enumerate(sbs_out):
   txqs.append(SimpleQueue())
   Thread(name=f"tx {s[0]}:{s[1]}", target=thread_wrapper, args=(tx_thread, s, txqs[-1])).start()
 
-if not os.path.exists("/log"):
+if getenv("LOG_FILE") and not os.path.exists("/log"):
      os.makedirs("/log")
-logfile = open(f"/log/{datetime.now(timezone.utc):%Y_%m_%d}.log", "a", 1)
-logfileh1 = open(f"/log/{datetime.now(timezone.utc):%Y_%m_%d}.h1.log", "a", 1)
 
 while True:
   try:
@@ -98,6 +96,31 @@ while True:
 
     if not sbs.get("txt") and not sbs.get("lat"):
       continue
+
+    if not sbs.get("reg"):
+      sbs["reg"] = icao2reg(sbs.get("icao", ""))
+
+    sbs["reg"] = sub(r'[^a-zA-Z0-9-]', '', sbs["reg"]).upper()
+
+    if not sbs.get("icao"):
+      sbs["icao"] = reg2icao(sbs.get("reg", ""))
+    if not sbs.get("icao"):
+      print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}{Fore.RESET}', file=stderr)
+      continue
+
+    if sbs["type"] == "acars":
+      squawk = "1111"
+    elif sbs["type"] == "vdlm2":
+      squawk = "2222"
+    elif sbs["type"] == "hfdl":
+      squawk = "3333"
+    else:
+      squawk = "0000"
+
+    if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
+      with open(f"/log/{sbs.get('msgtype')}.log", "a", 1) as logfile:
+        logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
+        logfile.write(f'{sbs["txt"]}\n\n')
 
     if sbs.get("lat"):
         lat = sbs["lat"]
@@ -169,8 +192,8 @@ while True:
         else:
           continue
       elif len(pos2a) and len(pos2b):
-        txt = sub(r'(LAT)', Fore.MAGENTA + r'\1' + Fore.RESET, sbs["txt"])
-        txt = sub(r'(LON)', Fore.MAGENTA + r'\1' + Fore.RESET, txt)
+        txt = sub(r'(LAT)', Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
+        txt = sub(r'(LON)', Fore.RED + r'\1' + Fore.RESET, txt)
         print(f"old regex 3 matched message type {sbs['msgtype']}")
         print(txt)
         continue
@@ -180,42 +203,10 @@ while True:
     print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
 #    print(pos, file=stderr)
 
-    if not sbs.get("reg"):
-      sbs["reg"] = icao2reg(sbs.get("icao", ""))
-
-    sbs["reg"] = sub(r'[^a-zA-Z0-9-]', '', sbs["reg"]).upper()
-
-    if not sbs.get("icao"):
-      sbs["icao"] = reg2icao(sbs.get("reg", ""))
-    if not sbs.get("icao"):
-      print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}{Fore.RESET}', file=stderr)
-      continue
-
-    if sbs["type"] == "acars":
-      squawk = "1111"
-    elif sbs["type"] == "vdlm2":
-      squawk = "2222"
-    elif sbs["type"] == "hfdl":
-      squawk = "3333"
-    else:
-      squawk = "0000"
-
     out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,{lat:.3f},{lon:.3f},,{squawk},,,,'
 
     print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
-
-    if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
-      if sbs["msgtype"] == "H1":
-        logfileh1.write(f'{sbs["txt"]}\n')
-        logfileh1.write(f'{sbs["type"]} {sbs.get("msgtype")}\n')
-        logfileh1.write(out+"\n")
-        logfileh1.write(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n\n')
-      else:
-        logfile.write(f'{sbs["txt"]}\n')
-        logfile.write(f'{sbs["type"]} {sbs.get("msgtype")}\n')
-        logfile.write(out+"\n")
-        logfile.write(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n\n')
 
     for q in txqs:
       q.put(out+"\r\n")
