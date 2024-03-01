@@ -8,6 +8,9 @@ dlon = r"(?P<dlon>[WE])"
 spdig2 = r"(?:\s|\d)\d"
 spdig3 = r"(?:\s\s|\s\d|\d\d)\d"
 
+ndig2 = r"(?:\d|\d\d)"
+ndig3 = r"(?:\d|\d\d|\d\d\d)"
+
 dig1 = r"\d"
 dig2 = r"\d\d"
 dig3 = r"\d\d\d"
@@ -21,6 +24,12 @@ def sd2(n):
 
 def sd3(n):
   return name(n, spdig3)
+
+def nd2(n):
+  return name(n, ndig2)
+
+def nd3(n):
+  return name(n, ndig3)
 
 def d1(n):
   return name(n, dig1)
@@ -48,7 +57,19 @@ msgrgx = {
          "14": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10"))],
          "15": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10")),
                 compile(dlat + sd2("latdeg") + d2("latmin") + d2("latsec") + dlon + sd3("londeg") + d2("lonmin") + d2("lonsec"))],
+         "45": [compile(dlat + d2("latdeg") + d2("latmin") + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "4A": [compile(dlat + " " + sd2("latdeg") + "\." + d3("latdeg1000") + "," + dlon + sd3("londeg") + "\." + d3("londeg1000"))],
+         "4N": [compile(dlat + d3("latdeg") + d2("latmin") + d1("latmin10") + " " + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "4R": [compile(dlat + sd2("latdeg") + " " + sd2("latmin") + r"\." + d2("latmin100") + " " + dlon + sd3("londeg") + " " + sd2("lonmin") + r"\."+ d2("lonmin100"))],
          "4T": [compile(d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + dlat + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10") + dlon)],
+         "57": [compile(dlat + d3("latdeg") + d2("latmin") + d2("latsec") + dlon + d3("londeg") + d2("lonmin") + d2("lonsec"))],
+         "58": [compile(dlat + nd2("latdeg") + "\." + d3("latdeg1000") + "\/" + dlon + nd3("londeg") + "\." + d3("londeg1000"))],
+         "5U": [compile(dlat + d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10"))],
+         "5Y": [compile(dlat + " " + sd2("latdeg") + d2("latmin") + d2("latsec") + "," + dlon + " " + sd3("londeg") + d2("lonmin") + d2("lonsec"))],
+         "80": [compile(dlat + d2("latdeg") + d2("latmin") + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10")),
+                compile(dlat + d2("latdeg") + d2("latmin") + "\." + d1("latmin10") + " " + dlon + d3("londeg") + d2("lonmin") + "\." + d1("lonmin10"))],
+         "83": [compile(dlat + d2("latdeg") + d2("latmin") + "\." + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + "\." + d1("lonmin10"))],
+         "B0": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10"))],
          }
 
 def decode(msg):
