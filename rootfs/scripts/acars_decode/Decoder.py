@@ -106,7 +106,8 @@ msgrgx = {
                 compile(dlat + d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + r"\s?" + dlon + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10"))],
          "83": [compile(dlat + d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10"))],
          "B0": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10"))],
-         "H1": [compile(r"TRP.*\s" + r"(?P<dlat>-?)" + nd2("latdeg") + r"\." + d4("latdeg10000") + r"\s+" + dlon + nd3("londeg") + r"\." + d4("londeg10000") + r"\s")],
+         "H1": [compile(r"TRP.*\s" + r"(?P<dlat>-?)" + nd2("latdeg") + r"\." + d4("latdeg10000") + r"\s+" + dlon + nd3("londeg") + r"\." + d4("londeg10000") + r"\s"),
+                compile(dlat + sd3("latdeg") + sd2("latmin") + d1("latmin10") + dlon + sd3("londeg") + sd2("lonmin") + d1("lonmin10"))],
          }
 
 def decode(msg):
