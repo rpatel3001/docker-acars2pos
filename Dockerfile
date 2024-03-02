@@ -19,7 +19,7 @@ RUN set -x && \
     "${KEPT_PACKAGES[@]}" \
     "${TEMP_PACKAGES[@]}" \
     && \
-    pip install --break-system-packages icao_nnumber_converter_us && \
+    pip install --break-system-packages icao_nnumber_converter_us haversine && \
     curl --location --output /tmp/BaseStation.zip https://github.com/rikgale/VRSData/raw/main/BaseStation.zip && \
     mkdir -p /opt/basestation && \
     unzip /tmp/BaseStation.zip -d /opt/basestation/ && \

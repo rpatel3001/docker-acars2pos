@@ -1,5 +1,7 @@
 from re import compile, sub
 from colorama import Fore
+from haversine import haversine as gcdist
+from os import getenv
 
 
 dlat = r"(?P<dlat>[NS])"
@@ -110,6 +112,16 @@ msgrgx = {
                 compile(dlat + sd3("latdeg") + sd2("latmin") + d1("latmin10") + dlon + sd3("londeg") + sd2("lonmin") + d1("lonmin10"))],
          }
 
+_homelat = float(getenv("LAT"))
+_homelon = float(getenv("LON"))
+_maxdist = float(getenv("MAX_DIST", 0))
+_distunit = getenv("DIST_UNIT", "nmi")
+def checkpos(lat, lon):
+  if _homelat and _homelon and _maxdist:
+    return _maxdist > gcdist((_homelat, _homelon), (lat, lon), unit=_distunit)
+  else:
+    return abs(lat) <= 90 and abs(lon) <= 180
+
 def decode(msg):
   if msg.get("vdl2"):
     dat = decodeVDLM2(msg["vdl2"])
@@ -118,8 +130,8 @@ def decode(msg):
   else:
     dat = decodeACARS(msg)
 
-  if not dat:
-    return None
+  if not dat or not dat.get("txt") or dat.get("lat"):
+    return dat
 
   dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
 
@@ -153,8 +165,13 @@ def decode(msg):
         dat["lon"] += float(raw.get("lonsec", 0))/3600
         dat["lon"] *= -1 if raw.get("dlon") == "W" or raw.get("dlon") == "-" else 1
 
-      if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
-        return dat
+      if dat.get("lat"):
+        if checkpos(dat["lat"], dat["lon"]):
+          return dat
+        else:
+          print(Fore.RED + "failed distance check" + Fore.RESET)
+          del dat["lat"]
+          del dat["lon"]
 
   for k in msgrgx.keys():
     for rgx in msgrgx[k]:
@@ -185,8 +202,13 @@ def decode(msg):
         dat["lon"] += float(raw.get("lonsec", 0))/3600
         dat["lon"] *= -1 if raw.get("dlon") == "W" or raw.get("dlon") == "-" else 1
 
-      if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
-        return dat
+      if dat.get("lat"):
+        if checkpos(dat["lat"], dat["lon"]):
+          return dat
+        else:
+          print(Fore.RED + "failed distance check" + Fore.RESET)
+          del dat["lat"]
+          del dat["lon"]
 
   for i,rgx in enumerate(rgxs):
     raw = rgx.findall(dat["txt"])
@@ -211,8 +233,13 @@ def decode(msg):
         dat["lat"] = (int(raw[1]) + float(raw[2])/60) * (-1 if raw[3] == "S" else 1)
         dat["lon"] = (int(raw[4]) + float(raw[5])/60) * (-1 if raw[6] == "W" else 1)
 
-    if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
-      return dat
+    if dat.get("lat"):
+      if checkpos(dat["lat"], dat["lon"]):
+        return dat
+      else:
+        print(Fore.RED + "failed distance check" + Fore.RESET)
+        del dat["lat"]
+        del dat["lon"]
 
   return dat
 

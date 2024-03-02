@@ -12,9 +12,13 @@ Under active development, everything is subject to change without notice.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `JSON_IN` | Semi-colon separated list of `host:port` entries to connect to for JSON ingest. | acars_router:15550 |
-| `SBS_OUT` | Semi-colon separated list of `host:port` entries to connect to for SBS/Basestation output. | ultrafeeder:12000 |
-| `LOG_FILE` | Set to any value to message text, type, SBS output, and adsbexchange link to files in `/log`. | Unset |
+| `JSON_IN`   | Semi-colon separated list of `host:port` entries to connect to for JSON ingest. | acars_router:15550 |
+| `SBS_OUT`   | Semi-colon separated list of `host:port` entries to connect to for SBS/Basestation output. | ultrafeeder:12000 |
+| `LOG_FILE`  | Set to any value to message text, type, SBS output, and adsbexchange link to files in `/log`. | Unset |
+| `LAT`       | Latitude of receiver. Only required if `MAX_DISTANCE` > 0 | Unset |
+| `LON`       | Longitude of receiver. Only required if `MAX_DISTANCE` > 0 | Unset |
+| `MAX_DIST`  | Set this to a nonzero value to reject parsed positions that are too far away. Only applies to positions parsed from message text. | `0` |
+| `DIST_UNIT` | The unit of the value in `MAX_DIST`. One of `km`, `m`, `mi`, `nmi`, `ft`, `in`. | `nmi` |
 
 ## Docker Compose
 
