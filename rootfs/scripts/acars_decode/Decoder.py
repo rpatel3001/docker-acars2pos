@@ -117,10 +117,12 @@ _homelon = float(getenv("LON", 0))
 _maxdist = float(getenv("MAX_DIST", 0))
 _distunit = getenv("DIST_UNIT", "nmi")
 def checkpos(lat, lon):
-  if _homelat and _homelon and _maxdist:
+  if abs(lat) > 90 or abs(lon) > 180:
+    return False
+  elif _homelat and _homelon and _maxdist:
     return _maxdist > gcdist((_homelat, _homelon), (lat, lon), unit=_distunit)
   else:
-    return abs(lat) <= 90 and abs(lon) <= 180
+    return True
 
 def decode(msg):
   if msg.get("vdl2"):
