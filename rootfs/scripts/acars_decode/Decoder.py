@@ -112,8 +112,8 @@ msgrgx = {
                 compile(dlat + sd3("latdeg") + sd2("latmin") + d1("latmin10") + dlon + sd3("londeg") + sd2("lonmin") + d1("lonmin10"))],
          }
 
-_homelat = float(getenv("LAT"))
-_homelon = float(getenv("LON"))
+_homelat = float(getenv("LAT", 0))
+_homelon = float(getenv("LON", 0))
 _maxdist = float(getenv("MAX_DIST", 0))
 _distunit = getenv("DIST_UNIT", "nmi")
 def checkpos(lat, lon):
