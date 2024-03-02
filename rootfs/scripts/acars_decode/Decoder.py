@@ -217,6 +217,7 @@ def decode(msg):
       print(f"regex {i} matched message type {dat['msgtype']}")
       print(pos)
       raw = rgx.search(dat["txt"])
+      print(raw)
       if i == 0:
         dat["lat"] = float(raw[2]) * (-1 if raw[1] == "S" else 1)
         dat["lon"] = float(raw[4]) * (-1 if raw[3] == "W" else 1)

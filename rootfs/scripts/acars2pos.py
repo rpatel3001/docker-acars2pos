@@ -94,9 +94,6 @@ while True:
     if sbs is None:
       continue
 
-    if not sbs.get("txt") and not sbs.get("lat"):
-      continue
-
     if not sbs.get("reg"):
       sbs["reg"] = icao2reg(sbs.get("icao", ""))
 
@@ -115,7 +112,7 @@ while True:
     elif sbs["type"] == "hfdl":
       squawk = "3333"
     else:
-      squawk = "0000"
+      squawk = "9999"
 
     if sbs.get("lat"):
       lat = sbs["lat"]
@@ -126,6 +123,16 @@ while True:
           logfile.write(f'{sbs["lat"]}, {sbs["lon"]}\n')
           logfile.write(f'{sbs["txt"]}\n\n')
     else:
+      if s := getenv("SEND_ALL"):
+        out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,,,,{squawk},,,,'
+        if s == "log":
+          print(f"sending nonpos {out}")
+        for q in txqs:
+          q.put(out+"\r\n")
+
+      if not sbs.get("txt"):
+        continue
+
       if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
         with open(f"/log/nopos.log", "a", 1) as logfile:
           logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
@@ -206,13 +213,9 @@ while True:
         continue
 
     print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
-#    print(pos, file=stderr)
-
     out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,{lat:.3f},{lon:.3f},,{squawk},,,,'
-
     print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
-
     for q in txqs:
       q.put(out+"\r\n")
   except BaseException:
