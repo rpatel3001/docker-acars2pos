@@ -14,6 +14,7 @@ ndig3 = r"(?:\d|\d\d|\d\d\d)"
 dig1 = r"\d"
 dig2 = r"\d\d"
 dig3 = r"\d\d\d"
+dig4 = r"\d\d\d\d"
 
 
 def name(n, rgx):
@@ -40,6 +41,9 @@ def d2(n):
 def d3(n):
   return name(n, dig3)
 
+def d4(n):
+  return name(n, dig4)
+
 
 rgxs = [
         compile(dlat + r"[ 0]{0,2}(\d{1,2}\.\d{3}).?" + dlon + r"[ 0]{0,2}(\d{1,3}\.\d{3})"), # thousandths of degrees
@@ -53,23 +57,56 @@ rgxs = [
         ]
 
 msgrgx = {
-         "10": [compile(dlat + " " + sd2("latdeg") + "\." + d3("latdeg1000") + "\/" + dlon + sd3("londeg") + "\." + d3("londeg1000"))],
+         "10": [compile(dlat + d2("latdeg") + r"\." + d3("latdeg1000") + r"\/" + dlon + d3("londeg") + r"\." + d3("londeg1000")),
+                compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000"))],
+         "12": [compile(dlat + sd3("latdeg") + d2("latmin") + d2("latsec") + dlon + sd3("londeg") + d2("lonmin") + d2("lonsec")),
+                compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000")),
+                compile(dlat + d2("latdeg") + d2("latmin") + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "13": [compile(r"^\s*(?P<dlat>-?)" + nd2("latdeg") + r"\." + d3("latdeg1000") + r" " + r"(?P<dlon>-?)" + nd3("londeg") + r"\." + d3("londeg1000") + r"\s")],
          "14": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10"))],
          "15": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10")),
                 compile(dlat + sd2("latdeg") + d2("latmin") + d2("latsec") + dlon + sd3("londeg") + d2("lonmin") + d2("lonsec"))],
+         "16": [compile(r"(?:[^,]*,){4}" + dlat + sd2("latdeg") + r"\." + d3("latdeg1000") + r"\s" + dlon + sd3("londeg") + r"\." + d3("londeg1000")),
+                compile(dlat + nd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + r" " + nd3("londeg") + d2("lonmin") + d1("lonmin10")),
+                compile(r"(?:[^,]*,){1}" + dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + r" " + sd3("londeg") + r"\." + d3("londeg1000")),
+                compile(r"(?:[^,]*,){4}" + dlat + r" " + nd2("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + r" " + nd3("londeg") + r"\." + d3("londeg1000")),
+                compile(dlat + d2("latdeg") + d2("latmin") + r"\." + d2("latmin100") + r" " + dlon + d3("londeg") + d2("lonmin") + r"\." + d2("lonmin100"))],
+         "18": [compile(dlat + d2("latdeg") + r" " + d2("latmin") + r"\." + d1("latmin10") + r" " + dlon + d3("londeg") + r" " + d2("lonmin") + r"\." + d1("lonmin10"))],
+         "1L": [compile(dlat + d2("latdeg") + d2("latmin") + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "20": [compile(dlat + d2("latdeg") + d2("latmin") + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "21": [compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + dlon + sd3("londeg") + r"\." + d3("londeg1000"))],
+         "22": [compile(dlat + sd3("latdeg") + d2("latmin") + d2("latsec") + dlon + sd3("londeg") + d2("lonmin") + d2("lonsec"))],
+         "30": [compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000")),
+                compile(r"(?:[^,]*,){5}" + dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000") + r",")],
+         "31": [compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000"))],
+         "32": [compile(r"(?:[^,]*,){5}" + dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"\s" + dlon + r"\s" + sd3("londeg") + r"\." + d3("londeg1000") + r",")],
+         "33": [compile(r"(?:[^,]*,){2}" + r"(?P<dlat>-?)" + nd3("latdeg") + r"\." + d3("latdeg1000") + r"," + r"(?P<dlon>-?)" + nd3("londeg") + r"\." + d3("londeg1000") + r","),
+                compile(r"(?:[^,]*,){5}" + dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000") + r",")],
+         "36": [compile(r"(?:[^,]*,){2}[\w-]+" + dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000") + r","),
+                compile(r"(?:[^,]*,){4}" + dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000") + r","),
+                compile(r"(?:[^,]*,){5}" + dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + r"," + dlon + nd3("londeg") + d2("lonmin") + d1("lonmin10") + r","),
+                compile(r"(?:[^,]*,){5}" + r"(?P<dlat>-?)" + d3("latdeg") + r"\." + d2("latdeg100") + r"," + r"(?P<dlon>-?)" + nd3("londeg") + r"\." + d2("londeg100") + r","),
+                compile(r"(?:[^,]*,){6}" + r"(?P<dlat>-?)" + nd2("latdeg") + r"\." + d2("latdeg100") + r"," + r"(?P<dlon>-?)" + nd3("londeg") + r"\." + d2("londeg100") + r",")],
+         "37": [compile(dlat + d2("latdeg") + r" " + d2("latmin") + r"\." + d1("latmin10") + r"\s?" + dlon + d3("londeg") + r" " + d2("lonmin") + r"\." + d1("lonmin10"))],
+         "39": [compile(r"(?:[^,]*,){4}" + r"(?P<dlat>-?)" + nd2("latdeg") + r"\." + d2("latdeg100") + r"," + r"(?P<dlon>-?)" + nd3("londeg") + r"\." + d2("londeg100") + r",")],
+         "41": [compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000"))],
+         "43": [compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000"))],
+         "44": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + r"\s?" + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10")),
+                compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000"))],
          "45": [compile(dlat + d2("latdeg") + d2("latmin") + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
-         "4A": [compile(dlat + " " + sd2("latdeg") + "\." + d3("latdeg1000") + "," + dlon + sd3("londeg") + "\." + d3("londeg1000"))],
-         "4N": [compile(dlat + d3("latdeg") + d2("latmin") + d1("latmin10") + " " + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
-         "4R": [compile(dlat + sd2("latdeg") + " " + sd2("latmin") + r"\." + d2("latmin100") + " " + dlon + sd3("londeg") + " " + sd2("lonmin") + r"\."+ d2("lonmin100"))],
+         "4A": [compile(dlat + sd3("latdeg") + r"\." + d3("latdeg1000") + r"," + dlon + sd3("londeg") + r"\." + d3("londeg1000"))],
+         "4N": [compile(dlat + d3("latdeg") + d2("latmin") + d1("latmin10") + r"\s?" + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "4R": [compile(dlat + sd2("latdeg") + r" " + sd2("latmin") + r"\." + d2("latmin100") + r"\s?" + dlon + sd3("londeg") + r" " + sd2("lonmin") + r"\."+ d2("lonmin100"))],
          "4T": [compile(d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + dlat + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10") + dlon)],
          "57": [compile(dlat + d3("latdeg") + d2("latmin") + d2("latsec") + dlon + d3("londeg") + d2("lonmin") + d2("lonsec"))],
-         "58": [compile(dlat + nd2("latdeg") + "\." + d3("latdeg1000") + "\/" + dlon + nd3("londeg") + "\." + d3("londeg1000"))],
+         "58": [compile(dlat + nd2("latdeg") + r"\." + d3("latdeg1000") + r"\/" + dlon + nd3("londeg") + r"\." + d3("londeg1000"))],
          "5U": [compile(dlat + d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10"))],
-         "5Y": [compile(dlat + " " + sd2("latdeg") + d2("latmin") + d2("latsec") + "," + dlon + " " + sd3("londeg") + d2("lonmin") + d2("lonsec"))],
+         "5Y": [compile(dlat + sd3("latdeg") + d2("latmin") + d2("latsec") + r"," + dlon + r"\s?" + sd3("londeg") + d2("lonmin") + d2("lonsec"))],
          "80": [compile(dlat + d2("latdeg") + d2("latmin") + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + d1("lonmin10")),
-                compile(dlat + d2("latdeg") + d2("latmin") + "\." + d1("latmin10") + " " + dlon + d3("londeg") + d2("lonmin") + "\." + d1("lonmin10"))],
-         "83": [compile(dlat + d2("latdeg") + d2("latmin") + "\." + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + "\." + d1("lonmin10"))],
+                compile(dlat + d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + r"\s?" + dlon + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10"))],
+         "83": [compile(dlat + d2("latdeg") + d2("latmin") + r"\." + d1("latmin10") + dlon + d3("londeg") + d2("lonmin") + r"\." + d1("lonmin10"))],
          "B0": [compile(dlat + sd2("latdeg") + d2("latmin") + d1("latmin10") + dlon + sd3("londeg") + d2("lonmin") + d1("lonmin10"))],
+         "H1": [compile(r"TRP.*\s" + r"(?P<dlat>-?)" + nd2("latdeg") + r"\." + d4("latdeg10000") + r"\s+" + dlon + nd3("londeg") + r"\." + d4("londeg10000") + r"\s")],
          }
 
 def decode(msg):
@@ -96,51 +133,85 @@ def decode(msg):
         raw = rgx.search(dat["txt"]).groupdict()
         print(raw)
         dat["lat"] =  float(raw.get("latdeg", 0))
-        dat["lat"] += float(raw.get("lat1000", 0))/1000
+        dat["lat"] += float(raw.get("latdeg100", 0))/100
+        dat["lat"] += float(raw.get("latdeg1000", 0))/1000
+        dat["lat"] += float(raw.get("latdeg10000", 0))/10000
         dat["lat"] += float(raw.get("latmin", 0))/60
         dat["lat"] += float(raw.get("latmin10", 0))/600
         dat["lat"] += float(raw.get("latmin100", 0))/6000
         dat["lat"] += float(raw.get("latsec", 0))/3600
-        dat["lat"] *= -1 if raw.get("dlat") == "S" else 1
+        dat["lat"] *= -1 if raw.get("dlat") == "S" or raw.get("dlat") == "-" else 1
 
         dat["lon"] =  float(raw.get("londeg", 0))
-        dat["lon"] += float(raw.get("lon1000", 0))/1000
+        dat["lon"] += float(raw.get("londeg100", 0))/100
+        dat["lon"] += float(raw.get("londeg1000", 0))/1000
+        dat["lon"] += float(raw.get("londeg10000", 0))/10000
         dat["lon"] += float(raw.get("lonmin", 0))/60
         dat["lon"] += float(raw.get("lonmin10", 0))/600
         dat["lon"] += float(raw.get("lonmin100", 0))/6000
         dat["lon"] += float(raw.get("lonsec", 0))/3600
-        dat["lon"] *= -1 if raw.get("dlon") == "W" else 1
+        dat["lon"] *= -1 if raw.get("dlon") == "W" or raw.get("dlon") == "-" else 1
 
       if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
-        break
+        return dat
 
-  if not dat.get("lat"):
-    for i,rgx in enumerate(rgxs):
+  for k in msgrgx.keys():
+    for rgx in msgrgx[k]:
       raw = rgx.findall(dat["txt"])
       if len(raw) == 1:
-        pos = rgx.sub(Fore.RED + r"\g<0>" + Fore.RESET, dat["txt"])
-        print(f"regex {i} matched message type {dat['msgtype']}")
+        pos = rgx.sub(Fore.GREEN + r"\g<0>" + Fore.RESET, dat["txt"])
+        print(f"matched message type {dat.get('msgtype')} with regex for {k}")
         print(pos)
+        raw = rgx.search(dat["txt"]).groupdict()
+        print(raw)
+        dat["lat"] =  float(raw.get("latdeg", 0))
+        dat["lat"] += float(raw.get("lat100", 0))/100
+        dat["lat"] += float(raw.get("lat1000", 0))/1000
+        dat["lat"] += float(raw.get("lat10000", 0))/10000
+        dat["lat"] += float(raw.get("latmin", 0))/60
+        dat["lat"] += float(raw.get("latmin10", 0))/600
+        dat["lat"] += float(raw.get("latmin100", 0))/6000
+        dat["lat"] += float(raw.get("latsec", 0))/3600
+        dat["lat"] *= -1 if raw.get("dlat") == "S" or raw.get("dlat") == "-" else 1
 
-        raw = rgx.search(dat["txt"])
-        if i == 0:
-          dat["lat"] = float(raw[2]) * (-1 if raw[1] == "S" else 1)
-          dat["lon"] = float(raw[4]) * (-1 if raw[3] == "W" else 1)
-        elif i == 1 or i == 2 or i == 7:
-          dat["lat"] = (int(raw[2]) + float(raw[3])/60) * (-1 if raw[1] == "S" else 1)
-          dat["lon"] = (int(raw[5]) + float(raw[6])/60) * (-1 if raw[4] == "W" else 1)
-        elif i == 3:
-          dat["lat"] = (int(raw[2]) + int(raw[3])/60 + int(raw[4])/3600) * (-1 if raw[1] == "S" else 1)
-          dat["lon"] = (int(raw[6]) + int(raw[7])/60 + int(raw[8])/3600) * (-1 if raw[5] == "W" else 1)
-        elif i == 4:
-          dat["lat"] = (int(raw[2]) + int(raw[3])/600) * (-1 if raw[1] == "S" else 1)
-          dat["lon"] = (int(raw[5]) + int(raw[6])/600) * (-1 if raw[4] == "W" else 1)
-        elif i == 5 or i == 6:
-          dat["lat"] = (int(raw[1]) + float(raw[2])/60) * (-1 if raw[3] == "S" else 1)
-          dat["lon"] = (int(raw[4]) + float(raw[5])/60) * (-1 if raw[6] == "W" else 1)
+        dat["lon"] =  float(raw.get("londeg", 0))
+        dat["lon"] += float(raw.get("lon100", 0))/100
+        dat["lon"] += float(raw.get("lon1000", 0))/1000
+        dat["lon"] += float(raw.get("lon10000", 0))/10000
+        dat["lon"] += float(raw.get("lonmin", 0))/60
+        dat["lon"] += float(raw.get("lonmin10", 0))/600
+        dat["lon"] += float(raw.get("lonmin100", 0))/6000
+        dat["lon"] += float(raw.get("lonsec", 0))/3600
+        dat["lon"] *= -1 if raw.get("dlon") == "W" or raw.get("dlon") == "-" else 1
 
       if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
-        break
+        return dat
+
+  for i,rgx in enumerate(rgxs):
+    raw = rgx.findall(dat["txt"])
+    if len(raw) == 1:
+      pos = rgx.sub(Fore.RED + r"\g<0>" + Fore.RESET, dat["txt"])
+      print(f"regex {i} matched message type {dat['msgtype']}")
+      print(pos)
+      raw = rgx.search(dat["txt"])
+      if i == 0:
+        dat["lat"] = float(raw[2]) * (-1 if raw[1] == "S" else 1)
+        dat["lon"] = float(raw[4]) * (-1 if raw[3] == "W" else 1)
+      elif i == 1 or i == 2 or i == 7:
+        dat["lat"] = (int(raw[2]) + float(raw[3])/60) * (-1 if raw[1] == "S" else 1)
+        dat["lon"] = (int(raw[5]) + float(raw[6])/60) * (-1 if raw[4] == "W" else 1)
+      elif i == 3:
+        dat["lat"] = (int(raw[2]) + int(raw[3])/60 + int(raw[4])/3600) * (-1 if raw[1] == "S" else 1)
+        dat["lon"] = (int(raw[6]) + int(raw[7])/60 + int(raw[8])/3600) * (-1 if raw[5] == "W" else 1)
+      elif i == 4:
+        dat["lat"] = (int(raw[2]) + int(raw[3])/600) * (-1 if raw[1] == "S" else 1)
+        dat["lon"] = (int(raw[5]) + int(raw[6])/600) * (-1 if raw[4] == "W" else 1)
+      elif i == 5 or i == 6:
+        dat["lat"] = (int(raw[1]) + float(raw[2])/60) * (-1 if raw[3] == "S" else 1)
+        dat["lon"] = (int(raw[4]) + float(raw[5])/60) * (-1 if raw[6] == "W" else 1)
+
+    if dat.get("lat") and abs(dat["lat"]) <= 90 and abs(dat["lon"]) <= 180 :
+      return dat
 
   return dat
 

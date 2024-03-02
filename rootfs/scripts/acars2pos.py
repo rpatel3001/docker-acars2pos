@@ -117,15 +117,20 @@ while True:
     else:
       squawk = "0000"
 
-    if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
-      with open(f"/log/{sbs.get('msgtype')}.log", "a", 1) as logfile:
-        logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
-        logfile.write(f'{sbs["txt"]}\n\n')
-
     if sbs.get("lat"):
-        lat = sbs["lat"]
-        lon = sbs["lon"]
+      lat = sbs["lat"]
+      lon = sbs["lon"]
+      if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
+        with open(f"/log/pos.log", "a", 1) as logfile:
+          logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
+          logfile.write(f'{sbs["lat"]}, {sbs["lon"]}\n')
+          logfile.write(f'{sbs["txt"]}\n\n')
     else:
+      if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
+        with open(f"/log/nopos.log", "a", 1) as logfile:
+          logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
+          logfile.write(f'{sbs["txt"]}\n\n')
+
       rgx1 = r"([NS][\s\d\.]{4,15},?\s*/?[WE][\s\d\.]{4,15})"
       rgx2 = r"([\s\d\.]{4,15}[NS],?\s*/?[\s\d\.]{4,15}[WE])"
 #      pos = findall("[NS]\s*\d+\.?\d*\s*,?\s*[WE]\s*\d+\.?\d*", sbs["txt"])
