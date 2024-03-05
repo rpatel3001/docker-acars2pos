@@ -272,11 +272,11 @@ def decodeVDLM2(msg):
   dat = {}
   dat["type"] = "vdlm2"
   dat["time"] = int(msg["t"]["sec"])
-  if not (msg["avlc"].get("acars") is None or msg["avlc"]["acars"].get("msg_text") is None):
-    dat["reg"] = msg["avlc"]["acars"]["reg"]
-    dat["flight"] = msg["avlc"]["acars"]["flight"]
-    dat["msgtype"] = msg["avlc"]["acars"]["label"]
-    dat["txt"] = msg["avlc"]["acars"]["msg_text"]
+  if msg["avlc"].get("acars"):
+    dat["reg"] = msg["avlc"]["acars"].get("reg", "")
+    dat["flight"] = msg["avlc"]["acars"].get("flight", "")
+    dat["msgtype"] = msg["avlc"]["acars"].get("label", "")
+    dat["txt"] = msg["avlc"]["acars"].get("msg_text", "")
   elif not (msg["avlc"].get("xid") is None or msg["avlc"]["xid"].get("vdl_params") is None):
     dat["icao"] = msg["avlc"]["src"]["addr"]
     for p in msg["avlc"]["xid"]["vdl_params"]:
