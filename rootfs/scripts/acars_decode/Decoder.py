@@ -46,6 +46,30 @@ def d3(n):
 def d4(n):
   return name(n, dig4)
 
+def getLat(raw):
+  lat =  float(raw.get("latdeg", 0))
+  lat += float(raw.get("latdeg100", 0))/100
+  lat += float(raw.get("latdeg1000", 0))/1000
+  lat += float(raw.get("latdeg10000", 0))/10000
+  lat += float(raw.get("latmin", 0))/60
+  lat += float(raw.get("latmin10", 0))/600
+  lat += float(raw.get("latmin100", 0))/6000
+  lat += float(raw.get("latsec", 0))/3600
+  lat *= -1 if raw.get("dlat") == "S" or raw.get("dlat") == "-" else 1
+  return lat
+
+def getLon(raw):
+  lon =  float(raw.get("londeg", 0))
+  lon += float(raw.get("londeg100", 0))/100
+  lon += float(raw.get("londeg1000", 0))/1000
+  lon += float(raw.get("londeg10000", 0))/10000
+  lon += float(raw.get("lonmin", 0))/60
+  lon += float(raw.get("lonmin10", 0))/600
+  lon += float(raw.get("lonmin100", 0))/6000
+  lon += float(raw.get("lonsec", 0))/3600
+  lon *= -1 if raw.get("dlon") == "W" or raw.get("dlon") == "-" else 1
+  return lon
+
 
 rgxs = [
         compile(dlat + r"[ 0]{0,2}(\d{1,2}\.\d{3}).?" + dlon + r"[ 0]{0,2}(\d{1,3}\.\d{3})"), # thousandths of degrees
@@ -153,25 +177,8 @@ def decode(msg):
         print(pos)
         raw = rgx.search(dat["txt"]).groupdict()
         print(raw)
-        dat["lat"] =  float(raw.get("latdeg", 0))
-        dat["lat"] += float(raw.get("latdeg100", 0))/100
-        dat["lat"] += float(raw.get("latdeg1000", 0))/1000
-        dat["lat"] += float(raw.get("latdeg10000", 0))/10000
-        dat["lat"] += float(raw.get("latmin", 0))/60
-        dat["lat"] += float(raw.get("latmin10", 0))/600
-        dat["lat"] += float(raw.get("latmin100", 0))/6000
-        dat["lat"] += float(raw.get("latsec", 0))/3600
-        dat["lat"] *= -1 if raw.get("dlat") == "S" or raw.get("dlat") == "-" else 1
-
-        dat["lon"] =  float(raw.get("londeg", 0))
-        dat["lon"] += float(raw.get("londeg100", 0))/100
-        dat["lon"] += float(raw.get("londeg1000", 0))/1000
-        dat["lon"] += float(raw.get("londeg10000", 0))/10000
-        dat["lon"] += float(raw.get("lonmin", 0))/60
-        dat["lon"] += float(raw.get("lonmin10", 0))/600
-        dat["lon"] += float(raw.get("lonmin100", 0))/6000
-        dat["lon"] += float(raw.get("lonsec", 0))/3600
-        dat["lon"] *= -1 if raw.get("dlon") == "W" or raw.get("dlon") == "-" else 1
+        dat["lat"] = getLat(raw)
+        dat["lon"] = getLon(raw)
 
       if dat.get("lat"):
         if dat["type"] == "hfdl" or checkpos(dat["lat"], dat["lon"]):
@@ -190,25 +197,8 @@ def decode(msg):
         print(pos)
         raw = rgx.search(dat["txt"]).groupdict()
         print(raw)
-        dat["lat"] =  float(raw.get("latdeg", 0))
-        dat["lat"] += float(raw.get("lat100", 0))/100
-        dat["lat"] += float(raw.get("lat1000", 0))/1000
-        dat["lat"] += float(raw.get("lat10000", 0))/10000
-        dat["lat"] += float(raw.get("latmin", 0))/60
-        dat["lat"] += float(raw.get("latmin10", 0))/600
-        dat["lat"] += float(raw.get("latmin100", 0))/6000
-        dat["lat"] += float(raw.get("latsec", 0))/3600
-        dat["lat"] *= -1 if raw.get("dlat") == "S" or raw.get("dlat") == "-" else 1
-
-        dat["lon"] =  float(raw.get("londeg", 0))
-        dat["lon"] += float(raw.get("lon100", 0))/100
-        dat["lon"] += float(raw.get("lon1000", 0))/1000
-        dat["lon"] += float(raw.get("lon10000", 0))/10000
-        dat["lon"] += float(raw.get("lonmin", 0))/60
-        dat["lon"] += float(raw.get("lonmin10", 0))/600
-        dat["lon"] += float(raw.get("lonmin100", 0))/6000
-        dat["lon"] += float(raw.get("lonsec", 0))/3600
-        dat["lon"] *= -1 if raw.get("dlon") == "W" or raw.get("dlon") == "-" else 1
+        dat["lat"] = getLat(raw)
+        dat["lon"] = getLon(raw)
 
       if dat.get("lat"):
         if dat["type"] == "hfdl" or checkpos(dat["lat"], dat["lon"]):

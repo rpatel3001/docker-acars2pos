@@ -13,6 +13,7 @@ from re import findall, search, split, sub
 from sys import stderr
 from threading import Thread, current_thread
 from time import sleep
+import math
 
 import requests
 from bs4 import BeautifulSoup
@@ -42,6 +43,21 @@ def tx_thread(host, txq):
   while True:
     msg = txq.get()
     sock.sendall(msg.encode(enc))
+
+def generateBasestation(sbs, squawk, lat, lon):
+  sbs_timestamp = f'{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T}.{(math.modf(sbs["time"])[0] * 1000):03.0f}'
+  sbs_callsign = sbs.get("flight", "")
+  if sbs_callsign:
+    sbs_callsign = sbs_callsign.ljust(8, ' ')
+  if lat != None and lon != None:
+    latstr = f'{lat:.6f}'
+    lonstr = f'{lon:.6f}'
+  else:
+    latstr = ''
+    lonstr = ''
+  if not squawk:
+    squawk = ''
+  return f'MSG,3,1,1,{sbs["icao"].upper()},1,{sbs_timestamp},{sbs_timestamp},{sbs_callsign},,,,{latstr},{lonstr},,{squawk},,0,,'
 
 # wrapper to catch exceptions and restart threads
 def thread_wrapper(func, *args):
@@ -124,7 +140,7 @@ while True:
           logfile.write(f'{sbs["txt"]}\n\n')
     else:
       if s := getenv("SEND_ALL"):
-        out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,,,,{squawk},,,,'
+        out = generateBasestation(sbs=sbs, squawk=squawk, lat=None, lon=None)
         if s == "log":
           print(f"sending nonpos {out}")
         for q in txqs:
@@ -213,7 +229,7 @@ while True:
         continue
 
     print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
-    out = f'MSG,3,1,1,{sbs["icao"].upper()},1,{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T},{datetime.now(timezone.utc):%Y/%m/%d,%T},{sbs.get("flight", "")},,,,{lat:.3f},{lon:.3f},,{squawk},,,,'
+    out = generateBasestation(sbs=sbs, squawk=squawk, lat=lat, lon=lon)
     print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
     for q in txqs:
