@@ -252,6 +252,7 @@ def decodeACARS(msg):
   dat["flight"] = msg.get("flight", "")
   dat["txt"] = msg["text"]
   dat["msgtype"] = msg["label"]
+  dat["freq"] = round(float(msg.get("freq", 0))*1000000)
   return dat
 
 def decodeVDLM2(msg):
@@ -262,12 +263,14 @@ def decodeVDLM2(msg):
   dat = {}
   dat["type"] = "vdlm2"
   dat["time"] = int(msg["t"]["sec"])
+  dat["freq"] = int(msg.get("freq", 0))
   if msg["avlc"].get("acars"):
     dat["reg"] = msg["avlc"]["acars"].get("reg", "")
     dat["flight"] = msg["avlc"]["acars"].get("flight", "")
     dat["msgtype"] = msg["avlc"]["acars"].get("label", "")
     dat["txt"] = msg["avlc"]["acars"].get("msg_text", "")
   elif not (msg["avlc"].get("xid") is None or msg["avlc"]["xid"].get("vdl_params") is None):
+    dat["xid"] = True
     dat["icao"] = msg["avlc"]["src"]["addr"]
     for p in msg["avlc"]["xid"]["vdl_params"]:
       if p["name"] == "ac_location":
@@ -292,6 +295,7 @@ def decodeHFDL(msg):
   dat["type"] = "hfdl"
   dat["time"] = int(msg["t"]["sec"])
   dat["flight"] = msg["lpdu"].get("hfnpdu", {}).get("flight_id", "")
+  dat["freq"] = int(msg.get("freq", 0))
   try:
     dat["lat"] = msg["lpdu"]["hfnpdu"]["pos"]["lat"]
     dat["lon"] = msg["lpdu"]["hfnpdu"]["pos"]["lon"]

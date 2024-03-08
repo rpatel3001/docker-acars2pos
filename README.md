@@ -20,6 +20,7 @@ Under active development, everything is subject to change without notice.
 | `MAX_DIST`  | Set this to a nonzero value to reject parsed positions that are too far away. Only applies to positions parsed from message text. | `0` |
 | `DIST_UNIT` | The unit of the value in `MAX_DIST`. One of `km`, `m`, `mi`, `nmi`, `ft`, `in`. | `nmi` |
 | `SEND_ALL`  | Set to any value to send SBS messages for messages without a position. Set to `log` to also print a log entry for each non-position message. | Unset |
+| `ACARS_FREQ_AS_SQUAWK`, `VDLM2_FREQ_AS_SQUAWK`, `HFDL_FREQ_AS_SQUAWK`  | Set to any value to send the received frequency as the squawk value, for each incoming message type. | Unset |
 
 ## Docker Compose
 

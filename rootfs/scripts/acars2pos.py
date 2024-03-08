@@ -122,11 +122,22 @@ while True:
       continue
 
     if sbs["type"] == "acars":
-      squawk = "1111"
+      if getenv("ACARS_FREQ_AS_SQUAWK"):
+        squawk = f"{round(sbs['freq']/1000-100000):d}"
+      else:
+        squawk = "1111"
     elif sbs["type"] == "vdlm2":
-      squawk = "2222"
+      if getenv("VDLM2_FREQ_AS_SQUAWK"):
+        squawk = f"{round(sbs['freq']/1000-100000):d}"
+      elif sbs.get("xid"):
+        squawk = "2220"
+      else:
+        squawk = "2222"
     elif sbs["type"] == "hfdl":
-      squawk = "3333"
+      if getenv("HFDL_FREQ_AS_SQUAWK"):
+        squawk = f"{round(sbs['freq']/1000):d}"
+      else:
+        squawk = "3333"
     else:
       squawk = "9999"
 
