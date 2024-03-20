@@ -57,7 +57,7 @@ def generateBasestation(sbs, squawk, lat, lon):
     lonstr = ''
   if not squawk:
     squawk = ''
-  return f'MSG,3,1,1,{sbs["icao"].upper()},1,{sbs_timestamp},{sbs_timestamp},{sbs_callsign},,,,{latstr},{lonstr},,{squawk},,0,,'
+  return f'MSG,3,1,1,{sbs["icao"].upper()},1,{sbs_timestamp},{sbs_timestamp},{sbs_callsign},{sbs["alt"]},,,{latstr},{lonstr},,{squawk},,0,,'
 
 # wrapper to catch exceptions and restart threads
 def thread_wrapper(func, *args):
@@ -121,12 +121,17 @@ while True:
       print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}{Fore.RESET}', file=stderr)
       continue
 
+    sbs["alt"] = ""
     if sbs["type"] == "acars":
+      if getenv("ACARS_FREQ_AS_ALT"):
+        sbs["alt"] = f"{round(sbs['freq']/1000-100000):d}"
       if getenv("ACARS_FREQ_AS_SQUAWK"):
         squawk = f"{round(sbs['freq']/1000-100000):d}"
       else:
         squawk = "1111"
     elif sbs["type"] == "vdlm2":
+      if getenv("VDLM2_FREQ_AS_ALT"):
+        sbs["alt"] = f"{round(sbs['freq']/1000-100000):d}"
       if getenv("VDLM2_FREQ_AS_SQUAWK"):
         squawk = f"{round(sbs['freq']/1000-100000):d}"
       elif sbs.get("xid"):
@@ -134,6 +139,8 @@ while True:
       else:
         squawk = "2222"
     elif sbs["type"] == "hfdl":
+      if getenv("HFDL_FREQ_AS_ALT"):
+        sbs["alt"] = f"{round(sbs['freq']/1000):d}"
       if getenv("HFDL_FREQ_AS_SQUAWK"):
         squawk = f"{round(sbs['freq']/1000):d}"
       else:

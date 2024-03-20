@@ -21,6 +21,7 @@ Under active development, everything is subject to change without notice.
 | `DIST_UNIT` | The unit of the value in `MAX_DIST`. One of `km`, `m`, `mi`, `nmi`, `ft`, `in`. | `nmi` |
 | `SEND_ALL`  | Set to any value to send SBS messages for messages without a position. Set to `log` to also print a log entry for each non-position message. | Unset |
 | `ACARS_FREQ_AS_SQUAWK`, `VDLM2_FREQ_AS_SQUAWK`, `HFDL_FREQ_AS_SQUAWK`  | Set to any value to send the received frequency as the squawk value, for each incoming message type. | Unset |
+| `ACARS_FREQ_AS_ALT`, `VDLM2_FREQ_AS_ALT`, `HFDL_FREQ_AS_ALT`  | Set to any value to send the received frequency as the altitude value, for each incoming message type. | Unset |
 
 ## Docker Compose
 
