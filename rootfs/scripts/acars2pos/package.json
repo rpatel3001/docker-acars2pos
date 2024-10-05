@@ -1,0 +1,38 @@
+{
+  "devDependencies": {
+    "@eslint/js": "^9.11.1",
+    "eslint": "^9.11.1",
+    "globals": "^15.10.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.2",
+    "typescript-eslint": "^8.8.0"
+  },
+  "dependencies": {
+    "@airframes/acars-decoder": "^1.6.8",
+    "better-sqlite3": "^11.3.0",
+    "ndjson": "^2.0.0"
+  },
+  "name": "acars2pos",
+  "version": "0.0.0",
+  "description": "Use the @airframes/acars-decoder package to extract position data from ACARS messages and forward them as SBS.",
+  "main": "dist/acars2pos.js",
+  "scripts": {
+    "lint": "npx eslint acars2pos.ts",
+    "clean": "rimraf dist",
+    "build": "tsc",
+    "serve": "node dist/acars2pos.js",
+    "start": "npm-run-all build serve",
+    "restart": "npm-run-all clean start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rpatel3001/docker-acars2pos.git"
+  },
+  "author": "Rajan Patel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rpatel3001/docker-acars2pos/issues"
+  },
+  "homepage": "https://github.com/rpatel3001/docker-acars2pos#readme"
+}
