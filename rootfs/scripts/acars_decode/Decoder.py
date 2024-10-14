@@ -2,7 +2,9 @@ from re import compile, sub
 from colorama import Fore
 from haversine import haversine as gcdist
 from os import getenv
+from javascript import require
 
+declib = require("@airframes/acars-decoder").MessageDecoder()
 
 dlat = r"(?P<dlat>[NS])"
 dlon = r"(?P<dlon>[WE])"
@@ -17,7 +19,6 @@ dig1 = r"\d"
 dig2 = r"\d\d"
 dig3 = r"\d\d\d"
 dig4 = r"\d\d\d\d"
-
 
 def name(n, rgx):
   return f"(?P<{n}>{rgx})"
@@ -162,7 +163,29 @@ def decode(msg):
   else:
     dat = decodeACARS(msg)
 
-  if not dat or not dat.get("txt") or dat.get("lat"):
+  if dat and dat.get("txt") and dat.get("msgtype"):
+    try:
+      res = declib.decode({"label": dat["msgtype"], "text": dat["txt"]})
+    except:
+      print("js bridge failed, killing script")
+      exit()
+    if res and res.decoded and res.raw:
+      print("airframes")
+      if res.raw.position:
+        print("airframes pos")
+        dat["squawk"] += 1
+        dat["lat"] = res.raw.position.latitude
+        dat["lon"] = res.raw.position.longitude
+      if res.raw.altitude:
+        print("airframes alt")
+        dat["squawk"] += 2
+        dat["alt"] = res.raw.altitude
+      if res.raw.groundspeed:
+        print("airframes spd")
+        dat["squawk"] += 4
+        dat["spd"] = res.raw.groundspeed
+
+  if not dat or not dat.get("txt"): # or dat.get("lat"):
     return dat
 
   dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
@@ -182,6 +205,7 @@ def decode(msg):
 
       if dat.get("lat"):
         if dat["type"] == "hfdl" or checkpos(dat["lat"], dat["lon"]):
+          dat["squawk"] += 10
           return dat
         else:
           print(Fore.RED + "failed distance check" + Fore.RESET)
@@ -202,6 +226,7 @@ def decode(msg):
 
       if dat.get("lat"):
         if dat["type"] == "hfdl" or checkpos(dat["lat"], dat["lon"]):
+          dat["squawk"] += 20
           return dat
         else:
           print(Fore.RED + "failed distance check" + Fore.RESET)
@@ -234,6 +259,7 @@ def decode(msg):
 
     if dat.get("lat"):
       if dat["type"] == "hfdl" or checkpos(dat["lat"], dat["lon"]):
+        dat["squawk"] += 40
         return dat
       else:
         print(Fore.RED + "failed distance check" + Fore.RESET)
@@ -246,6 +272,7 @@ def decodeACARS(msg):
   if msg.get("text") is None or msg["label"] == "SQ":
     return None
   dat = {}
+  dat["squawk"] = 1000
   dat["type"] = "acars"
   dat["reg"] = msg["tail"]
   dat["time"] = int(msg["timestamp"])
@@ -261,6 +288,7 @@ def decodeVDLM2(msg):
   elif (msg["avlc"].get("acars") is None or msg["avlc"]["acars"].get("msg_text") is None) and (msg["avlc"].get("xid") is None or msg["avlc"]["xid"].get("vdl_params") is None):
     return None
   dat = {}
+  dat["squawk"] = 3000
   dat["type"] = "vdlm2"
   dat["time"] = int(msg["t"]["sec"])
   dat["freq"] = int(msg.get("freq", 0))
@@ -270,6 +298,7 @@ def decodeVDLM2(msg):
     dat["msgtype"] = msg["avlc"]["acars"].get("label", "")
     dat["txt"] = msg["avlc"]["acars"].get("msg_text", "")
   elif not (msg["avlc"].get("xid") is None or msg["avlc"]["xid"].get("vdl_params") is None):
+    dat["squawk"] = 4000
     dat["xid"] = True
     dat["icao"] = msg["avlc"]["src"]["addr"]
     for p in msg["avlc"]["xid"]["vdl_params"]:
@@ -292,6 +321,7 @@ def decodeHFDL(msg):
 #    print("hfdl no keys")
 #    return None
   dat = {}
+  dat["squawk"] = 5000
   dat["type"] = "hfdl"
   dat["time"] = int(msg["t"]["sec"])
   dat["flight"] = msg["lpdu"].get("hfnpdu", {}).get("flight_id", "")
@@ -299,6 +329,7 @@ def decodeHFDL(msg):
   try:
     dat["lat"] = msg["lpdu"]["hfnpdu"]["pos"]["lat"]
     dat["lon"] = msg["lpdu"]["hfnpdu"]["pos"]["lon"]
+    dat["squawk"] = 6000
     if dat["lat"] == 180 and dat["lon"] == 180:
       return None
   except:
