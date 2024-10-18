@@ -92,12 +92,12 @@ sbs_out = [(x,int(y)) for x,y in sbs_out]
 
 rxq = SimpleQueue()
 for i,j in enumerate(json_in):
-  Thread(name=f"rx {j[0]}:{j[1]}", target=thread_wrapper, args=(rx_thread, j, rxq)).start()
+  Thread(name=f"rx {j[0]}:{j[1]}", target=thread_wrapper, daemon=True, args=(rx_thread, j, rxq)).start()
 
 txqs = []
 for i,s in enumerate(sbs_out):
   txqs.append(SimpleQueue())
-  Thread(name=f"tx {s[0]}:{s[1]}", target=thread_wrapper, args=(tx_thread, s, txqs[-1])).start()
+  Thread(name=f"tx {s[0]}:{s[1]}", target=thread_wrapper, daemon=True, args=(tx_thread, s, txqs[-1])).start()
 
 if getenv("LOG_FILE") and not os.path.exists("/log"):
      os.makedirs("/log")
@@ -251,6 +251,8 @@ while True:
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
     for q in txqs:
       q.put(out+"\r\n")
+  except SystemExit:
+    exit()
   except BaseException:
     print("Other exception:", file=stderr)
     pprint(data, stream=stderr)
