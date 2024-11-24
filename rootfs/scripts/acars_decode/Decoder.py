@@ -155,6 +155,8 @@ def checkpos(lat, lon):
   else:
     return True
 
+#nonaf = {}
+
 def decode(msg):
   if msg.get("vdl2"):
     dat = decodeVDLM2(msg["vdl2"])
@@ -170,25 +172,30 @@ def decode(msg):
       print("js bridge failed, killing script")
       exit()
     if res and res.decoded and res.raw:
-      print("airframes")
+#      print("airframes")
+      dat["squawk"] += 100
       if res.raw.position:
-        print("airframes pos")
-        dat["squawk"] += 1
+#        print("airframes pos")
+        dat["squawk"] += 100
         dat["lat"] = res.raw.position.latitude
         dat["lon"] = res.raw.position.longitude
       if res.raw.altitude:
-        print("airframes alt")
-        dat["squawk"] += 2
         dat["alt"] = res.raw.altitude
       if res.raw.groundspeed:
-        print("airframes spd")
-        dat["squawk"] += 4
         dat["spd"] = res.raw.groundspeed
+      if res.raw.out_time or res.raw.on_time or res.raw.in_time:
+        dat["ground"] = True
+      if res.raw.off_time:
+        dat["ground"] = False
+#    else:
+#      if res.decoder.decodeLevel in ["none"]: # , "partial"]:
+#        nonaf[dat["msgtype"]] = nonaf.get(dat["msgtype"], 0) + 1
+#        print(nonaf)
 
   if not dat or not dat.get("txt"): # or dat.get("lat"):
     return dat
 
-  dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
+  #dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
 
   rgxl = msgrgx.get(dat.get("msgtype"))
   if rgxl and dat.get("msgtype"):
@@ -259,7 +266,7 @@ def decode(msg):
 
     if dat.get("lat"):
       if dat["type"] == "hfdl" or checkpos(dat["lat"], dat["lon"]):
-        dat["squawk"] += 40
+        dat["squawk"] += 30
         return dat
       else:
         print(Fore.RED + "failed distance check" + Fore.RESET)
@@ -299,6 +306,7 @@ def decodeVDLM2(msg):
     dat["txt"] = msg["avlc"]["acars"].get("msg_text", "")
   elif not (msg["avlc"].get("xid") is None or msg["avlc"]["xid"].get("vdl_params") is None):
     dat["squawk"] = 4000
+    dat["msgtype"] = "xid"
     dat["xid"] = True
     dat["icao"] = msg["avlc"]["src"]["addr"]
     for p in msg["avlc"]["xid"]["vdl_params"]:
@@ -329,6 +337,7 @@ def decodeHFDL(msg):
   try:
     dat["lat"] = msg["lpdu"]["hfnpdu"]["pos"]["lat"]
     dat["lon"] = msg["lpdu"]["hfnpdu"]["pos"]["lon"]
+    dat["msgtype"] = "hfdl"
     dat["squawk"] = 6000
     if dat["lat"] == 180 and dat["lon"] == 180:
       return None

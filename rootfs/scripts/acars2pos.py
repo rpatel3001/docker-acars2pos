@@ -46,7 +46,7 @@ def tx_thread(host, txq):
     msg = txq.get()
     sock.sendall(msg.encode(enc))
 
-def generateBasestation(sbs, lat, lon, ground=False):
+def generateBasestation(sbs, lat, lon):
   sbs_timestamp = f'{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T}.{(math.modf(sbs["time"])[0] * 1000):03.0f}'
   sbs_callsign = sbs.get("flight", "")
   if sbs_callsign:
@@ -57,8 +57,10 @@ def generateBasestation(sbs, lat, lon, ground=False):
   else:
     latstr = ''
     lonstr = ''
-  if ground and ground != '0':
+  if sbs.get("ground"):
     ground = '-1'
+  elif sbs.get("ground") == False or sbs.get("alt", 0) > 100 or sbs.get("spd", 0) > 100:
+    ground = '0'
   else:
     ground = ''
   return f'MSG,3,1,1,{sbs["icao"].upper()},1,{sbs_timestamp},{sbs_timestamp},{sbs_callsign},{sbs.get("alt", "")},{sbs.get("spd", "")},,{latstr},{lonstr},,{sbs["squawk"]},,0,,{ground}'
@@ -115,11 +117,29 @@ while True:
     if sbs is None:
       continue
 
-    if sbs["squawk"] not in squawks:
-      squawks[sbs["squawk"]] = 0
-    squawks[sbs["squawk"]] += 1
-    pprint(squawks)
+    if sbs["msgtype"] not in squawks:
+      squawks[sbs["msgtype"]] = {}
+    if sbs["squawk"] not in squawks[sbs["msgtype"]]:
+      squawks[sbs["msgtype"]][sbs["squawk"]] = 0
+    squawks[sbs["msgtype"]][sbs["squawk"]] += 1
 
+
+    totals = {"total": {"airframes": 0, "python": 0, "total": 0}}
+    for k,v in squawks.items():
+        totals[k] = {}
+        totals[k]["airframes"] = 0
+        totals[k]["python"] = 0
+        totals[k]["total"] = 0
+        for k2,v2 in v.items():
+            totals[k]["total"] += v2
+            totals[k]["airframes"] += v2 if str(k2)[1] != "0" else 0
+            totals[k]["python"] += v2 if str(k2)[2] != "0" else 0
+            totals["total"]["total"] += v2
+            totals["total"]["airframes"] += v2 if str(k2)[1] != "0" else 0
+            totals["total"]["python"] += v2 if str(k2)[2] != "0" else 0
+    if totals["total"]["total"] / 10 == totals["total"]["total"] // 10:
+        totsort = dict(sorted(totals.items(), key=lambda item: item[1]["total"]))
+        pprint(totsort, sort_dicts=False)
 
     if not sbs.get("reg"):
       sbs["reg"] = icao2reg(sbs.get("icao", ""))
@@ -157,7 +177,7 @@ while True:
         with open(f"/log/pos.log", "a", 1) as logfile:
           logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
           logfile.write(f'{sbs["lat"]}, {sbs["lon"]}\n')
-          logfile.write(f'{sbs["txt"]}\n\n')
+          logfile.write(f'{sbs.get("txt")}\n\n')
     else:
       if s := getenv("SEND_ALL"):
         out = generateBasestation(sbs=sbs, lat=None, lon=None)
