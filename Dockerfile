@@ -10,6 +10,7 @@ RUN set -x && \
     TEMP_PACKAGES+=() && \
     TEMP_PACKAGES+=(python3-pip) && \
     # keep
+    KEPT_PACKAGES+=(python3-pip) && \
     KEPT_PACKAGES+=(python3-prctl) && \
     KEPT_PACKAGES+=(python3-bs4) && \
     KEPT_PACKAGES+=(python3-colorama) && \
