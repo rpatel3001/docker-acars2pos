@@ -28,11 +28,14 @@ def rx_thread(host, rxq):
   rdr = sock2lines(sock)
   print(f"Connected to JSON input at {host[0]}:{host[1]}")
   while True:
-    msg = next(rdr).strip()
+    msg = next(rdr)
+    if msg is None:
+      sleep(0.2)
+      continue
+
+    msg = msg.strip()
     if msg:
       rxq.put_nowait(msg)
-    else:
-      sleep(1)
 
 def tx_thread(host, txq):
   prctl.set_name(f"tx {host[0]}:{host[1]}")

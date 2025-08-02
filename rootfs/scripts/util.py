@@ -17,7 +17,7 @@ def sock2lines(f):
     try:
       block = os.read(fd, 8192)
     except BlockingIOError:
-      yield ""
+      yield None
       continue
     if not block:
       if buf:
