@@ -1,4 +1,4 @@
-FROM ghcr.io/sdr-enthusiasts/docker-baseimage:python
+FROM ghcr.io/sdr-enthusiasts/docker-baseimage:base
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -8,6 +8,7 @@ RUN set -x && \
     KEPT_PACKAGES=() && \
     # temp
     TEMP_PACKAGES+=() && \
+    TEMP_PACKAGES+=(python3-pip) && \
     # keep
     KEPT_PACKAGES+=(python3-prctl) && \
     KEPT_PACKAGES+=(python3-bs4) && \
@@ -24,8 +25,8 @@ RUN set -x && \
     mkdir -p /opt/basestation && \
     unzip /tmp/BaseStation.zip -d /opt/basestation/ && \
     # Clean up
-    apt-get remove -y "${TEMP_PACKAGES[@]}" && \
-    apt-get autoremove -y && \
+    apt-get autoremove -q -o APT::Autoremove::RecommendsImportant=0 -o APT::Autoremove::SuggestsImportant=0 -y ${TEMP_PACKAGES[@]} && \
+    bash /scripts/clean-build.sh && \
     rm -rf /src/* /tmp/* /var/lib/apt/lists/*
 
 COPY rootfs /
