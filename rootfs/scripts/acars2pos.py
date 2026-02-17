@@ -14,7 +14,6 @@ from sys import stderr
 from threading import Thread, current_thread
 from time import sleep
 import math
-
 import requests
 from bs4 import BeautifulSoup
 from colorama import Fore
@@ -47,7 +46,7 @@ def tx_thread(host, txq):
     msg = txq.get()
     sock.sendall(msg.encode(enc))
 
-def generateBasestation(sbs, squawk, lat, lon):
+def generateBasestation(sbs, lat, lon):
   sbs_timestamp = f'{datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y/%m/%d,%T}.{(math.modf(sbs["time"])[0] * 1000):03.0f}'
   sbs_callsign = sbs.get("flight", "")
   if sbs_callsign:
@@ -58,9 +57,13 @@ def generateBasestation(sbs, squawk, lat, lon):
   else:
     latstr = ''
     lonstr = ''
-  if not squawk:
-    squawk = ''
-  return f'MSG,3,1,1,{sbs["icao"].upper()},1,{sbs_timestamp},{sbs_timestamp},{sbs_callsign},{sbs["alt"]},,,{latstr},{lonstr},,{squawk},,0,,'
+  if sbs.get("ground"):
+    ground = '-1'
+  elif sbs.get("ground") == False or sbs.get("alt", 0) > 100 or sbs.get("spd", 0) > 100:
+    ground = '0'
+  else:
+    ground = ''
+  return f'MSG,3,1,1,{sbs["icao"].upper()},1,{sbs_timestamp},{sbs_timestamp},{sbs_callsign},{sbs.get("alt", "")},{sbs.get("spd", "")},,{latstr},{lonstr},,{sbs["squawk"]},,0,,{ground}'
 
 # wrapper to catch exceptions and restart threads
 def thread_wrapper(func, *args):
@@ -94,16 +97,17 @@ sbs_out = [(x,int(y)) for x,y in sbs_out]
 
 rxq = SimpleQueue()
 for i,j in enumerate(json_in):
-  Thread(name=f"rx {j[0]}:{j[1]}", target=thread_wrapper, args=(rx_thread, j, rxq)).start()
+  Thread(name=f"rx {j[0]}:{j[1]}", target=thread_wrapper, daemon=True, args=(rx_thread, j, rxq)).start()
 
 txqs = []
 for i,s in enumerate(sbs_out):
   txqs.append(SimpleQueue())
-  Thread(name=f"tx {s[0]}:{s[1]}", target=thread_wrapper, args=(tx_thread, s, txqs[-1])).start()
+  Thread(name=f"tx {s[0]}:{s[1]}", target=thread_wrapper, daemon=True, args=(tx_thread, s, txqs[-1])).start()
 
 if getenv("LOG_FILE") and not os.path.exists("/log"):
      os.makedirs("/log")
 
+squawks = {}
 while True:
   try:
     raw = rxq.get()
@@ -112,6 +116,30 @@ while True:
     sbs = AD.decode(data)
     if sbs is None:
       continue
+
+    if sbs["msgtype"] not in squawks:
+      squawks[sbs["msgtype"]] = {}
+    if sbs["squawk"] not in squawks[sbs["msgtype"]]:
+      squawks[sbs["msgtype"]][sbs["squawk"]] = 0
+    squawks[sbs["msgtype"]][sbs["squawk"]] += 1
+
+
+    totals = {"total": {"airframes": 0, "python": 0, "total": 0}}
+    for k,v in squawks.items():
+        totals[k] = {}
+        totals[k]["airframes"] = 0
+        totals[k]["python"] = 0
+        totals[k]["total"] = 0
+        for k2,v2 in v.items():
+            totals[k]["total"] += v2
+            totals[k]["airframes"] += v2 if str(k2)[1] != "0" else 0
+            totals[k]["python"] += v2 if str(k2)[2] != "0" else 0
+            totals["total"]["total"] += v2
+            totals["total"]["airframes"] += v2 if str(k2)[1] != "0" else 0
+            totals["total"]["python"] += v2 if str(k2)[2] != "0" else 0
+    if totals["total"]["total"] / 10 == totals["total"]["total"] // 10:
+        totsort = dict(sorted(totals.items(), key=lambda item: item[1]["total"]))
+        pprint(totsort, sort_dicts=False)
 
     if not sbs.get("reg"):
       sbs["reg"] = icao2reg(sbs.get("icao", ""))
@@ -124,30 +152,21 @@ while True:
       print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}{Fore.RESET}', file=stderr)
       continue
 
-    sbs["alt"] = ""
     if sbs["type"] == "acars":
       if getenv("ACARS_FREQ_AS_ALT"):
         sbs["alt"] = f"{round(sbs['freq']/1000-100000):d}"
       if getenv("ACARS_FREQ_AS_SQUAWK"):
         squawk = f"{round(sbs['freq']/1000-100000):d}"
-      else:
-        squawk = "1111"
     elif sbs["type"] == "vdlm2":
       if getenv("VDLM2_FREQ_AS_ALT"):
         sbs["alt"] = f"{round(sbs['freq']/1000-100000):d}"
       if getenv("VDLM2_FREQ_AS_SQUAWK"):
         squawk = f"{round(sbs['freq']/1000-100000):d}"
-      elif sbs.get("xid"):
-        squawk = "2220"
-      else:
-        squawk = "2222"
     elif sbs["type"] == "hfdl":
       if getenv("HFDL_FREQ_AS_ALT"):
         sbs["alt"] = f"{round(sbs['freq']/1000):d}"
       if getenv("HFDL_FREQ_AS_SQUAWK"):
         squawk = f"{round(sbs['freq']/1000):d}"
-      else:
-        squawk = "3333"
     else:
       squawk = "9999"
 
@@ -158,10 +177,10 @@ while True:
         with open(f"/log/pos.log", "a", 1) as logfile:
           logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
           logfile.write(f'{sbs["lat"]}, {sbs["lon"]}\n')
-          logfile.write(f'{sbs["txt"]}\n\n')
+          logfile.write(f'{sbs.get("txt")}\n\n')
     else:
       if s := getenv("SEND_ALL"):
-        out = generateBasestation(sbs=sbs, squawk=squawk, lat=None, lon=None)
+        out = generateBasestation(sbs=sbs, lat=None, lon=None)
         if s == "log":
           print(f"sending nonpos {out}")
         for q in txqs:
@@ -250,11 +269,13 @@ while True:
         continue
 
     print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
-    out = generateBasestation(sbs=sbs, squawk=squawk, lat=lat, lon=lon)
+    out = generateBasestation(sbs=sbs, lat=lat, lon=lon)
     print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
     for q in txqs:
       q.put(out+"\r\n")
+  except SystemExit:
+    exit()
   except BaseException:
     print("Other exception:", file=stderr)
     pprint(data, stream=stderr)

@@ -6,6 +6,23 @@ A Docker image which ingests JSON formatted ACARS, VDLM2, and HFDL messages and 
 
 Under active development, everything is subject to change without notice.
 
+Squawk Codes:
+* First Digit
+  * 1 = ACARS
+  * 3 = VDL
+  * 4 = VDL XID position
+  * 5 = HFDL
+  * 6 = HFDL position
+* Second Digit
+  * 0 = message not decoded by airframes library
+  * 1 = message decoded by airframes library
+  * 2 = message decoded by airframes library with position
+* Third Digit
+  * 0 = no position from python regexes
+  * 1 = position from matching message label regex
+  * 2 = position from a different message label regex
+  * 3 = position from unlabeled regex
+
 ---
 
 ## Environment Variables

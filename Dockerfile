@@ -10,17 +10,20 @@ RUN set -x && \
     TEMP_PACKAGES+=() && \
     TEMP_PACKAGES+=(python3-pip) && \
     # keep
+    KEPT_PACKAGES+=(python3-pip) && \
     KEPT_PACKAGES+=(python3-prctl) && \
     KEPT_PACKAGES+=(python3-bs4) && \
     KEPT_PACKAGES+=(python3-colorama) && \
     KEPT_PACKAGES+=(python3-requests) && \
+    KEPT_PACKAGES+=(nodejs) && \
+    KEPT_PACKAGES+=(npm) && \
     KEPT_PACKAGES+=(unzip) && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     "${KEPT_PACKAGES[@]}" \
     "${TEMP_PACKAGES[@]}" \
     && \
-    pip install --break-system-packages icao_nnumber_converter_us haversine && \
+    pip install --break-system-packages icao_nnumber_converter_us haversine javascript && \
     curl --location --output /tmp/BaseStation.zip https://github.com/rikgale/VRSData/raw/main/BaseStation.zip && \
     mkdir -p /opt/basestation && \
     unzip /tmp/BaseStation.zip -d /opt/basestation/ && \
