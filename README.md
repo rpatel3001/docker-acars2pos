@@ -50,9 +50,12 @@ services:
     image: ghcr.io/rpatel3001/docker-acars2pos
     restart: always
     environment:
-      - JSON_IN=planeslxc:15550;planeslxc:15555;planeslxc:15556
-      - SBS_OUT=adsbpc:12002;adsbpc:12004
-      - LOG_FILE=true
-    volumes:
-      - ./logs:/log
+      - JSON_IN=acars_router:15550;acars_router:15555;acars_router:15556
+      - SBS_OUT=tar1090acars:12000
+      - LOG_RAW=true
+#      - LOG_FILE=true
+      - MAX_DIST=201
+      - LAT=aa.bb
+      - LON=-xx.yy
+#      - SEND_ALL=true
 ```
