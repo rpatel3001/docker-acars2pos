@@ -189,6 +189,9 @@ while True:
       if not sbs.get("txt"):
         continue
 
+      if sbs["txt"].lstrip().startswith("FPN/") or sbs["txt"].lstrip().startswith("PWI/"):
+        continue
+
       if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
         with open(f"/log/nopos.log", "a", 1) as logfile:
           logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
