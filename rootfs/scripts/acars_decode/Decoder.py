@@ -187,15 +187,11 @@ def decode(msg):
         dat["ground"] = True
       if res.raw.off_time:
         dat["ground"] = False
-#    else:
-#      if res.decoder.decodeLevel in ["none"]: # , "partial"]:
-#        nonaf[dat["msgtype"]] = nonaf.get(dat["msgtype"], 0) + 1
-#        print(nonaf)
+    if res and res.decoded:
+      return dat
 
   if not dat or not dat.get("txt"): # or dat.get("lat"):
     return dat
-
-  #dat["txt"] = dat.get("txt", "").upper().replace("\r", "").replace("\n", "")
 
   rgxl = msgrgx.get(dat.get("msgtype"))
   if rgxl and dat.get("msgtype"):
