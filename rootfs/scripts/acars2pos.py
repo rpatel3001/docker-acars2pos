@@ -189,7 +189,7 @@ while True:
       if not sbs.get("txt"):
         continue
 
-      if sbs["txt"].lstrip().startswith("FPN/") or sbs["txt"].lstrip().startswith("PWI/"):
+      if "FPN/" in sbs["txt"] or "PWI/" in sbs["txt"]:
         continue
 
       if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
