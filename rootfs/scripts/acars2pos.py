@@ -95,6 +95,8 @@ sbs_out = sbs_out.split(";")
 sbs_out = [x.split(":") for x in sbs_out]
 sbs_out = [(x,int(y)) for x,y in sbs_out]
 
+adsb_host = getenv("ADSB_HOST", "globe.adsbexchange.com")
+
 rxq = SimpleQueue()
 for i,j in enumerate(json_in):
   Thread(name=f"rx {j[0]}:{j[1]}", target=thread_wrapper, daemon=True, args=(rx_thread, j, rxq)).start()
@@ -175,7 +177,7 @@ while True:
       lon = sbs["lon"]
       if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
         with open(f"/log/pos.log", "a", 1) as logfile:
-          logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
+          logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://{adsb_host}/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
           logfile.write(f'{sbs["lat"]}, {sbs["lon"]}\n')
           logfile.write(f'{sbs.get("txt")}\n\n')
     else:
@@ -194,7 +196,7 @@ while True:
 
       if getenv("LOG_FILE") and sbs.get("msgtype") and sbs.get("type") != "hfdl":
         with open(f"/log/nopos.log", "a", 1) as logfile:
-          logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
+          logfile.write(f'{sbs["type"]}\t{sbs.get("msgtype")}\thttps://{adsb_host}/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}\n')
           logfile.write(f'{sbs["txt"]}\n\n')
 
       rgx1 = r"([NS][\s\d\.]{4,15},?\s*/?[WE][\s\d\.]{4,15})"
@@ -273,7 +275,7 @@ while True:
 
     print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
     out = generateBasestation(sbs=sbs, lat=lat, lon=lon)
-    print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
+    print(f'https://{adsb_host}/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
     print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
     for q in txqs:
       q.put(out+"\r\n")
