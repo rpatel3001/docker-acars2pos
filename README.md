@@ -39,6 +39,7 @@ Squawk Codes:
 | `SEND_ALL`  | Set to any value to send SBS messages for messages without a position. Set to `log` to also print a log entry for each non-position message. | Unset |
 | `ACARS_FREQ_AS_SQUAWK`, `VDLM2_FREQ_AS_SQUAWK`, `HFDL_FREQ_AS_SQUAWK`  | Set to any value to send the received frequency as the squawk value, for each incoming message type. | Unset |
 | `ACARS_FREQ_AS_ALT`, `VDLM2_FREQ_AS_ALT`, `HFDL_FREQ_AS_ALT`  | Set to any value to send the received frequency as the altitude value, for each incoming message type. | Unset |
+| `ADSB_HOST` | Host for tar1090 endpoint | `globe.adsbexchange.com`
 
 ## Docker Compose
 
