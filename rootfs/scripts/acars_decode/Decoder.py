@@ -174,6 +174,12 @@ def decode(msg):
     if res and res.decoded and res.raw:
 #      print("airframes")
       dat["squawk"] += 100
+      if res.raw.tail:
+        dat["reg"] = res.raw.tail
+      if res.raw.flight_number:
+        dat["flight"] = res.raw.flight_number
+      if res.raw.message_timestamp: # acars can be delayed. use the actual message instead of reception time
+        dat["time"] = res.raw.message_timestamp
       if res.raw.position:
 #        print("airframes pos")
         dat["squawk"] += 100
@@ -187,7 +193,6 @@ def decode(msg):
         dat["ground"] = True
       if res.raw.off_time:
         dat["ground"] = False
-    if res and res.decoded:
       return dat
 
   if not dat or not dat.get("txt"): # or dat.get("lat"):
