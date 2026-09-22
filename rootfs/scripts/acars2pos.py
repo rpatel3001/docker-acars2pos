@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from json import loads
 from math import pow
 from os import getenv
-from pprint import pprint
 import prctl
 from queue import SimpleQueue
 from re import findall, search, split, sub
@@ -18,6 +17,7 @@ import requests
 from bs4 import BeautifulSoup
 from colorama import Fore
 
+import log
 from acars_decode import Decoder as AD
 from util import *
 
@@ -26,7 +26,7 @@ def rx_thread(host, rxq):
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   sock.connect(host)
   rdr = sock2lines(sock)
-  print(f"Connected to JSON input at {host[0]}:{host[1]}")
+  log.info(f"Connected to JSON input at {host[0]}:{host[1]}")
   while True:
     msg = next(rdr)
     if msg is None:
@@ -41,7 +41,7 @@ def tx_thread(host, txq):
   prctl.set_name(f"tx {host[0]}:{host[1]}")
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   sock.connect(host)
-  print(f"Connected to SBS output at {host[0]}:{host[1]}")
+  log.info(f"Connected to SBS output at {host[0]}:{host[1]}")
   while True:
     msg = txq.get()
     sock.sendall(msg.encode(enc))
@@ -70,19 +70,22 @@ def thread_wrapper(func, *args):
     slp = 10
     while True:
         try:
-          print(f"[{current_thread().name}] starting thread")
+          log.info(f"[{current_thread().name}] starting thread")
           func(*args)
         except BrokenPipeError:
-          print(f"[{current_thread().name}] pipe broken; restarting thread in {slp} seconds")
+          log.warn(f"[{current_thread().name}] pipe broken; restarting thread in {slp} seconds")
         except ConnectionRefusedError:
-          print(f"[{current_thread().name}] connection refused; restarting thread in {slp} seconds")
+          log.warn(f"[{current_thread().name}] connection refused; restarting thread in {slp} seconds")
         except StopIteration:
-          print(f"[{current_thread().name}] lost connection; restarting thread in {slp} seconds")
+          log.warn(f"[{current_thread().name}] lost connection; restarting thread in {slp} seconds")
         except BaseException as exc:
-          print(traceback.format_exc())
-          print(f"[{current_thread().name}] exception {type(exc).__name__}; restarting thread in {slp} seconds")
+          # The traceback is the detail behind the one-line summary below, so it
+          # sits one level lower: the summary names the failure at WARN, the
+          # traceback explains it at DEBUG.
+          log.debug(traceback.format_exc())
+          log.warn(f"[{current_thread().name}] exception {type(exc).__name__}; restarting thread in {slp} seconds")
         else:
-          print(f"[{current_thread().name}] thread function returned; restarting thread in {slp} seconds")
+          log.warn(f"[{current_thread().name}] thread function returned; restarting thread in {slp} seconds")
         sleep(slp)
 
 json_in = getenv("JSON_IN", "acars_router:15550")
@@ -124,22 +127,30 @@ while True:
     squawks[sbs["msgtype"]][sbs["squawk"]] += 1
 
 
-    totals = {"total": {"airframes": 0, "python": 0, "total": 0}}
-    for k,v in squawks.items():
-        totals[k] = {}
-        totals[k]["airframes"] = 0
-        totals[k]["python"] = 0
-        totals[k]["total"] = 0
-        for k2,v2 in v.items():
-            totals[k]["total"] += v2
-            totals[k]["airframes"] += v2 if str(k2)[1] != "0" else 0
-            totals[k]["python"] += v2 if str(k2)[2] != "0" else 0
-            totals["total"]["total"] += v2
-            totals["total"]["airframes"] += v2 if str(k2)[1] != "0" else 0
-            totals["total"]["python"] += v2 if str(k2)[2] != "0" else 0
-    if totals["total"]["total"] / 10 == totals["total"]["total"] // 10:
-        totsort = dict(sorted(totals.items(), key=lambda item: item[1]["total"]))
-        pprint(totsort, sort_dicts=False)
+    # This running per-type tally was by far the largest source of log volume:
+    # it reprints every message type seen so far, every tenth message, so the
+    # block grows without bound for the life of the container. It accounted for
+    # 44% of all output when measured against a 4148-message corpus.
+    #
+    # The tally exists only to be printed, so the guard covers the computation
+    # too rather than just the print.
+    if log.enabled(log.TRACE):
+      totals = {"total": {"airframes": 0, "python": 0, "total": 0}}
+      for k,v in squawks.items():
+          totals[k] = {}
+          totals[k]["airframes"] = 0
+          totals[k]["python"] = 0
+          totals[k]["total"] = 0
+          for k2,v2 in v.items():
+              totals[k]["total"] += v2
+              totals[k]["airframes"] += v2 if str(k2)[1] != "0" else 0
+              totals[k]["python"] += v2 if str(k2)[2] != "0" else 0
+              totals["total"]["total"] += v2
+              totals["total"]["airframes"] += v2 if str(k2)[1] != "0" else 0
+              totals["total"]["python"] += v2 if str(k2)[2] != "0" else 0
+      if totals["total"]["total"] / 10 == totals["total"]["total"] // 10:
+          totsort = dict(sorted(totals.items(), key=lambda item: item[1]["total"]))
+          log.pp(log.TRACE, totsort, sort_dicts=False)
 
     if not sbs.get("reg"):
       sbs["reg"] = icao2reg(sbs.get("icao", ""))
@@ -149,7 +160,7 @@ while True:
     if not sbs.get("icao"):
       sbs["icao"] = reg2icao(sbs.get("reg", ""))
     if not sbs.get("icao"):
-      print(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}{Fore.RESET}', file=stderr)
+      log.trace(f'{Fore.GREEN}xxxxxxx {sbs["reg"]}{Fore.RESET}', stream=stderr)
       continue
 
     if sbs["type"] == "acars":
@@ -182,7 +193,9 @@ while True:
       if s := getenv("SEND_ALL"):
         out = generateBasestation(sbs=sbs, lat=None, lon=None)
         if s == "log":
-          print(f"sending nonpos {out}")
+          # SEND_ALL=log is an explicit opt-in to per-message logging, so it
+          # keeps printing at DEBUG rather than being buried at TRACE.
+          log.debug(f"sending nonpos {out}")
         for q in txqs:
           q.put(out+"\r\n")
 
@@ -205,9 +218,10 @@ while True:
       pos2a = findall("LAT", sbs["txt"])
       pos2b = findall("LON", sbs["txt"])
       if (len(pos1) == 1):
-        txt = sub(rgx1, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
-        print(f"old regex 1 matched message type {sbs['msgtype']}")
-        print(txt)
+        if log.enabled(log.TRACE):
+          txt = sub(rgx1, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
+          log.trace(f"old regex 1 matched message type {sbs['msgtype']}")
+          log.trace(txt)
 
         pos = pos1[0]
         pos = sub(r'/', '', pos)
@@ -234,9 +248,10 @@ while True:
         else:
           continue
       elif len(pos1b) == 1:
-        txt = sub(rgx2, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
-        print(f"old regex 2 matched message type {sbs['msgtype']}")
-        print(txt)
+        if log.enabled(log.TRACE):
+          txt = sub(rgx2, Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
+          log.trace(f"old regex 2 matched message type {sbs['msgtype']}")
+          log.trace(txt)
 
         pos = pos1b[0]
         pos = sub(r'/', '', pos)
@@ -263,24 +278,32 @@ while True:
         else:
           continue
       elif len(pos2a) and len(pos2b):
-        txt = sub(r'(LAT)', Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
-        txt = sub(r'(LON)', Fore.RED + r'\1' + Fore.RESET, txt)
-        print(f"old regex 3 matched message type {sbs['msgtype']}")
-        print(txt)
+        if log.enabled(log.TRACE):
+          txt = sub(r'(LAT)', Fore.RED + r'\1' + Fore.RESET, sbs["txt"])
+          txt = sub(r'(LON)', Fore.RED + r'\1' + Fore.RESET, txt)
+          log.trace(f"old regex 3 matched message type {sbs['msgtype']}")
+          log.trace(txt)
         continue
       else:
         continue
 
-    print(f'{sbs["type"]} {sbs.get("msgtype")}', file=stderr)
+    # Three lines for every position emitted. Useful when investigating a
+    # decode, but it is the steady-state volume that makes `docker logs`
+    # unreadable, so it sits at TRACE. The position itself still goes out on the
+    # SBS socket regardless of log level.
+    log.trace(f'{sbs["type"]} {sbs.get("msgtype")}', stream=stderr)
     out = generateBasestation(sbs=sbs, lat=lat, lon=lon)
-    print(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
-    print(f'{Fore.BLUE}{out}{Fore.RESET}\n', file=stderr)
+    log.trace(f'https://globe.adsbexchange.com/?icao={sbs["icao"]}&showTrace={datetime.fromtimestamp(sbs["time"], tz=timezone.utc):%Y-%m-%d}&timestamp={sbs["time"]}')
+    log.trace(f'{Fore.BLUE}{out}{Fore.RESET}\n', stream=stderr)
     for q in txqs:
       q.put(out+"\r\n")
   except SystemExit:
     exit()
   except BaseException:
-    print("Other exception:", file=stderr)
-    pprint(data, stream=stderr)
-    print(traceback.format_exc(), file=stderr)
+    # An unhandled error decoding a message. Kept at ERROR so it stays visible
+    # at any usable log level; the offending message is dumped at DEBUG since it
+    # can be large and is only useful when reproducing the failure.
+    log.error("Other exception:")
+    log.pp(log.DEBUG, data, stream=stderr)
+    log.error(traceback.format_exc())
     pass

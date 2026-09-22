@@ -4,6 +4,8 @@ from haversine import haversine as gcdist
 from os import getenv
 from javascript import require
 
+import log
+
 declib = require("@airframes/acars-decoder").MessageDecoder()
 
 dlat = r"(?P<dlat>[NS])"
@@ -169,7 +171,9 @@ def decode(msg):
     try:
       res = declib.decode({"label": dat["msgtype"], "text": dat["txt"]})
     except:
-      print("js bridge failed, killing script")
+      # Fatal: the script exits immediately after this, so it must be reported
+      # at every log level or the container appears to die silently.
+      log.fatal("js bridge failed, killing script")
       exit()
     if res and res.decoded and res.raw:
 #      print("airframes")
@@ -202,11 +206,14 @@ def decode(msg):
     for rgx in rgxl:
       raw = rgx.findall(dat["txt"])
       if len(raw) == 1:
-        pos = rgx.sub(Fore.GREEN + r"\g<0>" + Fore.RESET, dat["txt"])
-        print(f"matched message type {dat['msgtype']}")
-        print(pos)
+        if log.enabled(log.TRACE):
+          # rgx.sub over the message text exists only to colourise it for the
+          # log, so it is skipped rather than merely unprinted.
+          pos = rgx.sub(Fore.GREEN + r"\g<0>" + Fore.RESET, dat["txt"])
+          log.trace(f"matched message type {dat['msgtype']}")
+          log.trace(pos)
         raw = rgx.search(dat["txt"]).groupdict()
-        print(raw)
+        log.trace(raw)
         dat["lat"] = getLat(raw)
         dat["lon"] = getLon(raw)
 
@@ -215,7 +222,9 @@ def decode(msg):
           dat["squawk"] += 10
           return dat
         else:
-          print(Fore.RED + "failed distance check" + Fore.RESET)
+          # Expected outcome of the MAX_DIST filter, not a fault: routine at
+          # normal levels, so TRACE.
+          log.trace(Fore.RED + "failed distance check" + Fore.RESET)
           del dat["lat"]
           del dat["lon"]
 
@@ -223,11 +232,12 @@ def decode(msg):
     for rgx in msgrgx[k]:
       raw = rgx.findall(dat["txt"])
       if len(raw) == 1:
-        pos = rgx.sub(Fore.GREEN + r"\g<0>" + Fore.RESET, dat["txt"])
-        print(f"matched message type {dat.get('msgtype')} with regex for {k}")
-        print(pos)
+        if log.enabled(log.TRACE):
+          pos = rgx.sub(Fore.GREEN + r"\g<0>" + Fore.RESET, dat["txt"])
+          log.trace(f"matched message type {dat.get('msgtype')} with regex for {k}")
+          log.trace(pos)
         raw = rgx.search(dat["txt"]).groupdict()
-        print(raw)
+        log.trace(raw)
         dat["lat"] = getLat(raw)
         dat["lon"] = getLon(raw)
 
@@ -236,18 +246,19 @@ def decode(msg):
           dat["squawk"] += 20
           return dat
         else:
-          print(Fore.RED + "failed distance check" + Fore.RESET)
+          log.trace(Fore.RED + "failed distance check" + Fore.RESET)
           del dat["lat"]
           del dat["lon"]
 
   for i,rgx in enumerate(rgxs):
     raw = rgx.findall(dat["txt"])
     if len(raw) == 1:
-      pos = rgx.sub(Fore.RED + r"\g<0>" + Fore.RESET, dat["txt"])
-      print(f"regex {i} matched message type {dat['msgtype']}")
-      print(pos)
+      if log.enabled(log.TRACE):
+        pos = rgx.sub(Fore.RED + r"\g<0>" + Fore.RESET, dat["txt"])
+        log.trace(f"regex {i} matched message type {dat['msgtype']}")
+        log.trace(pos)
       raw = rgx.search(dat["txt"])
-      print(raw)
+      log.trace(raw)
       if i == 0:
         dat["lat"] = float(raw[2]) * (-1 if raw[1] == "S" else 1)
         dat["lon"] = float(raw[4]) * (-1 if raw[3] == "W" else 1)
@@ -269,7 +280,7 @@ def decode(msg):
         dat["squawk"] += 30
         return dat
       else:
-        print(Fore.RED + "failed distance check" + Fore.RESET)
+        log.trace(Fore.RED + "failed distance check" + Fore.RESET)
         del dat["lat"]
         del dat["lon"]
 
@@ -313,7 +324,7 @@ def decodeVDLM2(msg):
       if p["name"] == "ac_location":
         dat["lat"] = p["value"]["loc"]["lat"]
         dat["lon"] = p["value"]["loc"]["lon"]
-        print(f"got VDLM2 with XID pos {dat['lat']} {dat['lon']}")
+        log.trace(f"got VDLM2 with XID pos {dat['lat']} {dat['lon']}")
   return dat
 
 acdb = {}
@@ -321,8 +332,12 @@ regdb = {}
 def decodeHFDL(msg):
   if not msg.get("lpdu"):
     if not msg.get("spdu"):
-      pprint(msg)
-      print("hfdl bad top level key")
+      # This called pprint(), which was never imported in this module, so
+      # reaching it raised NameError instead of reporting the bad message. The
+      # caller's blanket `except BaseException` then swallowed it, turning an
+      # unparseable-input diagnostic into a silently dropped message.
+      log.pp(log.DEBUG, msg)
+      log.warn("hfdl bad top level key")
     return None
 #  if not msg["lpdu"].get("hfnpdu"):
 #    pprint(msg)
@@ -356,14 +371,14 @@ def decodeHFDL(msg):
     dat["icao"] = msg["lpdu"]["ac_info"].get("icao", "")
     dat["reg"] = msg["lpdu"]["ac_info"].get("regnr", "")
     regdb[dat["flight"]] = {"icao": dat["icao"], "reg": dat["reg"]}
-    print(f"hfdl logon req/res {dat['flight']} {regdb[dat['flight']]}")
+    log.trace(f"hfdl logon req/res {dat['flight']} {regdb[dat['flight']]}")
   elif dat["msgtype"] == 159:
 #    pprint(msg["lpdu"]["ac_info"])
     dat["id"] = msg["lpdu"]["assigned_ac_id"]
     dat["icao"] = msg["lpdu"]["ac_info"].get("icao", "")
     dat["reg"] = msg["lpdu"]["ac_info"].get("regnr", "")
     acdb[dat["id"]] = {"icao": dat["icao"], "reg": dat["reg"], "flight": dat["flight"]}
-    print(f"hfdl logon confirm {dat['id']} {acdb[dat['id']]}")
+    log.trace(f"hfdl logon confirm {dat['id']} {acdb[dat['id']]}")
   else:
     if acdb.get(dat["id"]):
 #      print(f"hfdl ac in db: {dat['id']}")
